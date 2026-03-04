@@ -1,0 +1,548 @@
+# Digital Wedding Invitation — Implementation Plan
+
+## 1. Product Requirements Document (PRD)
+
+### 1.1 Vision & Objective
+
+Menghadirkan pengalaman undangan digital yang **eksklusif, personal, dan fungsional** bagi pasangan menengah ke atas yang mengutamakan privasi dan estetika formal-elegan. Platform ini memberikan setiap tamu link unik dengan pengalaman interaktif premium, sekaligus menyediakan dashboard admin bagi pengantin untuk mengelola seluruh aspek acara.
+
+### 1.2 Target Users
+
+| Persona               | Deskripsi                                                                               |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| **Tamu Undangan**     | Menerima link personal, melihat undangan, RSVP, menulis ucapan, mengirim angpao digital |
+| **Pengantin (Admin)** | Mengelola daftar tamu, moderasi ucapan, monitor RSVP & check-in                         |
+
+### 1.3 Feature Matrix
+
+| #   | Feature                                  | Priority | Phase |
+| --- | ---------------------------------------- | -------- | ----- |
+| F1  | Personalized URL (`/to/[guest]`)         | P0       | 1     |
+| F2  | Hero Page + Foto Prewedding + Slow-zoom  | P0       | 1     |
+| F3  | Dynamic Audio Fade-in                    | P0       | 1     |
+| F4  | Countdown & Schedule                     | P0       | 1     |
+| F5  | Mempelai Profile                         | P0       | 1     |
+| F6  | Interactive Storyline (Scroll-triggered) | P1       | 1     |
+| F7  | Direct Navigation CTA (Maps)             | P0       | 1     |
+| F8  | Premium Gallery (Masonry + Fullscreen)   | P1       | 2     |
+| F9  | RSVP Form (Real-time)                    | P0       | 2     |
+| F10 | Digital Guestbook (Curated)              | P1       | 2     |
+| F11 | Digital Angpao & Gift                    | P1       | 2     |
+| F12 | Unique QR Code per Guest                 | P1       | 2     |
+| F13 | Admin Auth (Supabase)                    | P0       | 3     |
+| F14 | Guest Management + CSV Import            | P0       | 3     |
+| F15 | RSVP Tracker                             | P0       | 3     |
+| F16 | Guestbook Moderation                     | P1       | 3     |
+| F17 | Check-in Tracker                         | P1       | 3     |
+
+---
+
+## 2. User Flow
+
+### 2.1 Guest Journey (Public Side)
+
+```mermaid
+flowchart TD
+    A["Tamu menerima link personal\n/to/Budi-Santoso"] --> B["Hero Page\n(Foto prewedding + slow-zoom)\n'Special Invitation for: Budi Santoso'"]
+    B --> C{"Klik 'Buka Undangan'"}
+    C --> D["Audio fade-in (0→100%, 2s)\nScroll unlocked"]
+    D --> E["Countdown & Schedule\n(Akad & Resepsi)"]
+    E --> F["Mempelai Profile\n(Nama, Orang Tua, Socmed)"]
+    F --> G["Interactive Storyline\n(Scroll-triggered timeline)"]
+    G --> H["Lokasi + Tombol Maps\n(Auto-detect OS)"]
+    H --> I["Premium Gallery\n(Masonry grid + fullscreen)"]
+    I --> J["RSVP Form\n(Nama, Jumlah Pax, Status)"]
+    J --> K["Digital Guestbook\n(Tulis ucapan → antrian kurasi)"]
+    K --> L["Digital Angpao\n(Rekening/QRIS + Salin + Upload bukti)"]
+    L --> M["QR Code Unik\n(Untuk check-in di lokasi)"]
+```
+
+### 2.2 Admin Journey
+
+```mermaid
+flowchart TD
+    A["Login (Supabase Auth)"] --> B["Dashboard Overview\n(Stats: Total Tamu, RSVP, Check-in)"]
+    B --> C["Guest Management"]
+    C --> C1["Upload CSV / Input Manual"]
+    C1 --> C2["Generate Link Otomatis"]
+    C2 --> C3["Lihat Status RSVP per Tamu"]
+    B --> D["Guestbook Moderation"]
+    D --> D1["Review ucapan masuk"]
+    D1 --> D2["Approve / Reject"]
+    B --> E["Check-in Tracker"]
+    E --> E1["Scan QR → Update status"]
+    E1 --> E2["Statistik kehadiran real-time"]
+```
+
+---
+
+## 3. Database Schema (Supabase)
+
+```sql
+-- Tabel tamu undangan
+CREATE TABLE guests (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,              -- Nama lengkap tamu
+  slug TEXT NOT NULL UNIQUE,       -- URL slug: "budi-santoso"
+  max_pax INT DEFAULT 2,          -- Maksimal tamu yang boleh dibawa
+  rsvp_status TEXT DEFAULT 'pending', -- 'pending' | 'attending' | 'not_attending'
+  rsvp_pax INT DEFAULT 0,         -- Jumlah yang hadir
+  rsvp_message TEXT,              -- Pesan dari tamu saat RSVP (opsional)
+  checked_in BOOLEAN DEFAULT FALSE,
+  checked_in_at TIMESTAMPTZ,
+  qr_token TEXT NOT NULL UNIQUE,  -- Token unik untuk QR code
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Buku tamu / ucapan
+CREATE TABLE guestbook (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  guest_id UUID REFERENCES guests(id) ON DELETE CASCADE,
+  guest_name TEXT NOT NULL,        -- Nama yang ditampilkan
+  message TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',   -- 'pending' | 'approved' | 'rejected'
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Digital angpao / konfirmasi transfer
+CREATE TABLE gifts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  guest_id UUID REFERENCES guests(id) ON DELETE SET NULL,
+  sender_name TEXT NOT NULL,
+  bank_name TEXT,
+  amount NUMERIC,
+  proof_url TEXT,                  -- URL bukti transfer (Supabase Storage)
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Event info (single row, editable dari admin)
+CREATE TABLE event_info (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  groom_name TEXT NOT NULL,
+  groom_father TEXT,
+  groom_mother TEXT,
+  groom_photo_url TEXT,
+  groom_instagram TEXT,
+  bride_name TEXT NOT NULL,
+  bride_father TEXT,
+  bride_mother TEXT,
+  bride_photo_url TEXT,
+  bride_instagram TEXT,
+  akad_date TIMESTAMPTZ,
+  akad_location TEXT,
+  akad_maps_url TEXT,
+  resepsi_date TIMESTAMPTZ,
+  resepsi_location TEXT,
+  resepsi_maps_url TEXT,
+  hero_photo_url TEXT,
+  audio_url TEXT,
+  bank_name TEXT,
+  bank_account_number TEXT,
+  bank_account_holder TEXT,
+  qris_image_url TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Storyline items
+CREATE TABLE storyline (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  year TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  photo_url TEXT,
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Gallery photos
+CREATE TABLE gallery (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  photo_url TEXT NOT NULL,
+  caption TEXT,
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+> [!IMPORTANT]
+> User perlu membuat project Supabase terlebih dahulu dan menyediakan `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Tabel di atas akan di-setup melalui Supabase SQL Editor.
+
+---
+
+## 4. Design System
+
+### 4.1 Color Palette
+
+| Token              | Hex               | Usage                           |
+| ------------------ | ----------------- | ------------------------------- |
+| `--gold`           | `#D4AF37`         | Accents, CTA, borders           |
+| `--gold-light`     | `#E8D48B`         | Hover states, subtle highlights |
+| `--gold-dark`      | `#B8960C`         | Active states                   |
+| `--off-white`      | `#FAF9F6`         | Background utama                |
+| `--cream`          | `#F5F0E8`         | Section alternate background    |
+| `--charcoal`       | `#333333`         | Body text                       |
+| `--charcoal-light` | `#666666`         | Secondary text                  |
+| `--charcoal-dark`  | `#1A1A1A`         | Headings, strong text           |
+| `--overlay`        | `rgba(0,0,0,0.5)` | Modal overlays                  |
+
+### 4.2 Typography
+
+| Role                    | Font          | Source              | Weight                  | Usage                                               |
+| ----------------------- | ------------- | ------------------- | ----------------------- | --------------------------------------------------- |
+| **Decorative / Script** | Pinyon Script | Google Fonts        | 400                     | Nama mempelai, "Special Invitation", aksen romantis |
+| **Display / Headline**  | Safira March  | DaFont (local file) | Regular                 | Section titles, judul utama, ornamental headings    |
+| **Body / UI**           | Urbanist      | Google Fonts        | 300, 400, 500, 600, 700 | Paragraf, form, button, countdown, semua body text  |
+
+> [!NOTE]
+> **Safira March** dari DaFont perlu di-download manual oleh user dan disimpan sebagai file `.woff2` / `.woff` di `public/fonts/`. Font ini akan di-load via `@font-face` di CSS, bukan Google Fonts.
+
+### 4.3 Spacing & Layout
+
+- **Section padding**: `80px` vertical, `24px` horizontal (desktop), `48px / 16px` (mobile)
+- **Max content width**: `1200px`
+- **Border radius**: `4px` (buttons), `8px` (cards), `16px` (modals)
+- **Generous whitespace** between sections for "bernapas" feel
+
+### 4.4 Background Strategy — Video Background (Hero Only)
+
+Video background **hanya** dipakai di **Welcome Screen + Hero Section** agar tidak membebani performa. Sisanya menggunakan background solid.
+
+| Aspek               | Detail                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Posisi**          | Welcome screen & Hero section saja (full-viewport)                                                    |
+| **Konten Video**    | Loop pendek (10-15 detik): soft bokeh lights, floating gold particles, atau kain sutra bergerak pelan |
+| **Overlay**         | Gradient overlay semi-transparan (`rgba(0,0,0,0.4)` → transparent) agar teks tetap terbaca            |
+| **Fallback**        | Foto prewedding sebagai `poster` jika video gagal load                                                |
+| **Performance**     | `<video muted autoplay loop playsinline>`, resolusi max 720p, format WebM + MP4                       |
+| **Mobile**          | Auto-switch ke foto statis (video terlalu berat di mobile)                                            |
+| **Section lainnya** | Background solid: `--off-white` (#FAF9F6) dan `--cream` (#F5F0E8) bergantian                          |
+
+### 4.5 Animation Engine — GSAP + Lenis
+
+Kombinasi **GSAP** + **Lenis** (keduanya gratis) untuk animasi dan smooth scrolling:
+
+| Library           | Fungsi                                                                     |
+| ----------------- | -------------------------------------------------------------------------- |
+| **GSAP Core**     | Animasi dasar: fade, scale, translate, stagger                             |
+| **ScrollTrigger** | Memicu animasi berdasarkan scroll position (section reveal, parallax, pin) |
+| **Lenis**         | Smooth scrolling seluruh halaman — feel premium, open-source               |
+
+**Setup:**
+
+```typescript
+// lib/gsap.ts — GSAP + ScrollTrigger registration
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
+export { gsap, ScrollTrigger };
+```
+
+```typescript
+// lib/lenis.ts — Lenis smooth scroll + GSAP integration
+import Lenis from "lenis";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+export function initSmoothScroll() {
+  const lenis = new Lenis({
+    duration: 1.2,
+    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    smoothWheel: true,
+  });
+
+  // Sync Lenis dengan GSAP ScrollTrigger
+  lenis.on("scroll", ScrollTrigger.update);
+
+  function raf(time: number) {
+    lenis.raf(time);
+    requestAnimationFrame(raf);
+  }
+  requestAnimationFrame(raf);
+
+  return lenis;
+}
+```
+
+---
+
+## 5. Folder Structure
+
+```
+src/
+├── app/
+│   ├── layout.tsx                    # Root layout (fonts, metadata)
+│   ├── page.tsx                      # Landing/redirect page
+│   ├── globals.css                   # Design system CSS tokens
+│   │
+│   ├── to/
+│   │   └── [slug]/
+│   │       └── page.tsx              # ★ Main invitation page (per guest)
+│   │
+│   ├── admin/
+│   │   ├── layout.tsx                # Admin layout + auth guard
+│   │   ├── page.tsx                  # Dashboard overview
+│   │   ├── login/
+│   │   │   └── page.tsx              # Admin login
+│   │   ├── guests/
+│   │   │   └── page.tsx              # Guest management
+│   │   ├── guestbook/
+│   │   │   └── page.tsx              # Guestbook moderation
+│   │   └── checkin/
+│   │       └── page.tsx              # Check-in tracker
+│   │
+│   └── api/
+│       ├── rsvp/
+│       │   └── route.ts              # RSVP submit endpoint
+│       ├── guestbook/
+│       │   └── route.ts              # Guestbook submit
+│       ├── gifts/
+│       │   └── route.ts              # Gift confirmation upload
+│       ├── guests/
+│       │   ├── route.ts              # Guest CRUD + CSV import
+│       │   └── checkin/
+│       │       └── route.ts          # QR check-in endpoint
+│       └── upload/
+│           └── route.ts              # File upload to Supabase Storage
+│
+├── components/
+│   ├── invitation/
+│   │   ├── HeroSection.tsx           # Hero + video bg + open invitation CTA
+│   │   ├── AudioPlayer.tsx           # Hidden audio + fade-in logic
+│   │   ├── CountdownSection.tsx      # Countdown timer + schedule
+│   │   ├── CoupleSection.tsx         # Mempelai profile
+│   │   ├── StorylineSection.tsx      # GSAP scroll-triggered timeline
+│   │   ├── LocationSection.tsx       # Maps CTA (auto-detect OS)
+│   │   ├── GallerySection.tsx        # Masonry gallery + lightbox
+│   │   ├── RsvpSection.tsx           # RSVP form
+│   │   ├── GuestbookSection.tsx      # Guestbook display + form
+│   │   ├── GiftSection.tsx           # Angpao/rekening
+│   │   ├── QrSection.tsx             # QR code per guest
+│   │   └── SmoothScroll.tsx          # Lenis smooth scroll initializer
+│   │
+│   ├── admin/
+│   │   ├── Sidebar.tsx               # Admin sidebar nav
+│   │   ├── StatsCard.tsx             # Stats overview cards
+│   │   ├── GuestTable.tsx            # Guest list table
+│   │   ├── GuestbookList.tsx         # Moderation list
+│   │   └── CheckinStats.tsx          # Check-in statistics
+│   │
+│   └── ui/
+│       ├── Button.tsx                # Reusable button
+│       ├── Modal.tsx                 # Lightbox/modal
+│       ├── Input.tsx                 # Styled input
+│       └── Badge.tsx                 # Status badge
+│
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts                 # Browser Supabase client
+│   │   └── server.ts                 # Server-side Supabase client
+│   ├── gsap.ts                       # ★ GSAP plugin registration (core + ScrollTrigger)
+│   ├── lenis.ts                      # ★ Lenis smooth scroll init + GSAP sync
+│   ├── constants.ts                  # Event data constants (fallback)
+│   └── utils.ts                      # Helper functions (slug gen, OS detect, etc.)
+│
+├── hooks/
+│   ├── useAudio.ts                   # Audio fade-in hook
+│   ├── useCountdown.ts               # Countdown timer hook
+│   └── useGsap.ts                    # GSAP animation hook (timeline + ScrollTrigger helper)
+│
+└── types/
+    └── index.ts                      # TypeScript interfaces & types
+```
+
+---
+
+## 6. Proposed Changes (Development Phases)
+
+### Phase 1: Foundation & Design System
+
+#### [MODIFY] [globals.css](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/app/globals.css)
+
+- Replace dengan Design System lengkap: CSS custom properties (color tokens, spacing, typography), utility classes, responsive breakpoints, animasi dasar.
+
+#### [MODIFY] [layout.tsx](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/app/layout.tsx)
+
+- Import Google Fonts (Cormorant Garamond + Montserrat), setup metadata global, tambahkan `<html>` lang dan class.
+
+#### [NEW] [client.ts](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/lib/supabase/client.ts)
+
+- Inisialisasi Supabase client (browser-side) using `@supabase/ssr`.
+
+#### [NEW] [server.ts](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/lib/supabase/server.ts)
+
+- Inisialisasi Supabase client (server-side) for API routes & server components.
+
+#### [NEW] [types/index.ts](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/types/index.ts)
+
+- TypeScript interfaces: `Guest`, `GuestbookEntry`, `Gift`, `EventInfo`, `StorylineItem`, `GalleryPhoto`.
+
+#### [NEW] [lib/utils.ts](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/lib/utils.ts)
+
+- Helpers: `generateSlug()`, `detectOS()`, `formatDate()`, `cn()` (classname merge).
+
+#### [NEW] UI Components
+
+- [Button.tsx](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/components/ui/Button.tsx)
+- [Modal.tsx](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/components/ui/Modal.tsx)
+- [Input.tsx](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/components/ui/Input.tsx)
+- [Badge.tsx](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/components/ui/Badge.tsx)
+- [ScrollReveal.tsx](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/components/ui/ScrollReveal.tsx)
+
+---
+
+### Phase 2: Public Invitation Page
+
+#### [NEW] [to/[slug]/page.tsx](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/app/to/[slug]/page.tsx)
+
+- Server component: query guest by slug, fetch event info, render invitation.
+- Pass data to client components. SEO metadata dynamic per guest.
+
+#### [NEW] Invitation Components
+
+Semua di `src/components/invitation/`:
+
+| Component              | Fitur Utama                                                                                                          |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `SmoothWrapper.tsx`    | Inisialisasi GSAP ScrollSmoother — membungkus seluruh konten dengan `#smooth-wrapper` / `#smooth-content`            |
+| `HeroSection.tsx`      | **Video background** (desktop) / foto statis (mobile), slow-zoom via GSAP, teks personalized, tombol "Buka Undangan" |
+| `AudioPlayer.tsx`      | `<audio>` hidden, fade-in volume via `requestAnimationFrame`, pause/play toggle                                      |
+| `CountdownSection.tsx` | Real-time countdown (days/hours/min/sec), info Akad & Resepsi, GSAP fade-up on scroll                                |
+| `CoupleSection.tsx`    | Layout 2 kolom, foto, nama, orang tua, ikon sosmed hover-reveal, GSAP stagger reveal                                 |
+| `StorylineSection.tsx` | Vertical timeline, **GSAP ScrollTrigger** untuk animate-in setiap item secara sequential                             |
+| `LocationSection.tsx`  | Card lokasi, tombol "Petunjuk Lokasi" → detect `navigator.userAgent` → Google Maps / Apple Maps                      |
+| `GallerySection.tsx`   | CSS Grid masonry, klik → Modal fullscreen, swipe support                                                             |
+| `RsvpSection.tsx`      | Form: nama (prefilled), jumlah pax (dropdown), status (radio). Submit ke `/api/rsvp`                                 |
+| `GuestbookSection.tsx` | Display approved messages + form input baru. Submit ke `/api/guestbook`                                              |
+| `GiftSection.tsx`      | Nomor rekening + "Salin" (`navigator.clipboard`), QRIS image, form upload bukti transfer                             |
+| `QrSection.tsx`        | Generate QR code dari `qr_token` menggunakan `qrcode` library                                                        |
+
+#### [NEW] Custom Hooks
+
+- `useAudio.ts` — Kontrol audio play/pause/fade-in
+- `useCountdown.ts` — Hitung mundur ke tanggal target
+- `useGsap.ts` — GSAP animation helper: `useGsapReveal()` (ScrollTrigger fade/slide-in), `useGsapTimeline()` (complex sequences)
+
+#### [NEW] API Routes
+
+- `api/rsvp/route.ts` — POST update RSVP status di Supabase
+- `api/guestbook/route.ts` — POST insert ucapan baru (status: pending)
+- `api/gifts/route.ts` — POST insert konfirmasi transfer + upload bukti
+- `api/upload/route.ts` — POST upload file ke Supabase Storage
+
+---
+
+### Phase 3: Admin Dashboard
+
+#### [NEW] [admin/login/page.tsx](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/app/admin/login/page.tsx)
+
+- Login form → `supabase.auth.signInWithPassword()`
+
+#### [NEW] [admin/layout.tsx](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/app/admin/layout.tsx)
+
+- Auth guard: redirect ke login jika belum auth. Sidebar navigation.
+
+#### [NEW] [admin/page.tsx](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/app/admin/page.tsx)
+
+- Dashboard overview: total guests, RSVP stats (pie/bar chart), check-in count, recent guestbook entries.
+
+#### [NEW] [admin/guests/page.tsx](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/app/admin/guests/page.tsx)
+
+- Tabel daftar tamu, tombol import CSV (`papaparse`), generate link, lihat/edit detail, status RSVP badges.
+
+#### [NEW] [admin/guestbook/page.tsx](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/app/admin/guestbook/page.tsx)
+
+- List ucapan masuk, filter by status, tombol Approve/Reject per item.
+
+#### [NEW] [admin/checkin/page.tsx](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/app/admin/checkin/page.tsx)
+
+- Statistik check-in, search guest, manual check-in toggle.
+
+#### [NEW] [api/guests/route.ts](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/app/api/guests/route.ts)
+
+- GET all guests, POST create guest, PUT update, DELETE. CSV batch import.
+
+#### [NEW] [api/guests/checkin/route.ts](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/src/app/api/guests/checkin/route.ts)
+
+- POST check-in by QR token scan.
+
+#### [NEW] Admin Components
+
+- `Sidebar.tsx`, `StatsCard.tsx`, `GuestTable.tsx`, `GuestbookList.tsx`, `CheckinStats.tsx`
+
+---
+
+### Phase 4: Polish & Optimization
+
+#### [MODIFY] [next.config.ts](file:///d:/Firaz/Kylo/Project/Website/digital-wedding/next.config.ts)
+
+- Add image domains (Supabase Storage, Cloudinary), headers, redirects.
+
+#### All components
+
+- Responsive testing (mobile-first)
+- GSAP animation performance (`will-change`, GPU-accelerated transforms, `force3D: true`)
+- Video background: lazy load, mobile fallback ke gambar statis
+- Loading states & error boundaries
+- Accessibility (aria labels, keyboard nav, color contrast)
+
+---
+
+## 7. Dependencies to Install
+
+```bash
+npm install @supabase/supabase-js @supabase/ssr gsap lenis qrcode papaparse
+npm install -D @types/qrcode @types/papaparse
+```
+
+| Package                 | Purpose                                             |
+| ----------------------- | --------------------------------------------------- |
+| `@supabase/supabase-js` | Supabase client SDK                                 |
+| `@supabase/ssr`         | Server-side Supabase for Next.js                    |
+| `gsap`                  | Animation core + ScrollTrigger (gratis)             |
+| `lenis`                 | Smooth scrolling open-source, integrasi dengan GSAP |
+| `qrcode`                | Generate QR code per tamu                           |
+| `papaparse`             | Parse CSV untuk import guest list                   |
+
+---
+
+## 8. Environment Variables
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx...
+SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
+NEXT_PUBLIC_BASE_URL=https://your-domain.com
+```
+
+> [!CAUTION]
+> `SUPABASE_SERVICE_ROLE_KEY` hanya digunakan di server-side (API routes). Jangan pernah expose di client code.
+
+---
+
+## 9. Verification Plan
+
+### 9.1 Automated / Browser Testing
+
+| Test               | Method  | Command / Steps                                                              |
+| ------------------ | ------- | ---------------------------------------------------------------------------- |
+| Build succeeds     | CLI     | `npm run build` — harus 0 error                                              |
+| Dev server runs    | CLI     | `npm run dev` — bisa diakses di `localhost:3000`                             |
+| Guest page renders | Browser | Navigate ke `localhost:3000/to/test-guest` → verifikasi semua section tampil |
+| RSVP submit        | Browser | Isi form RSVP → submit → cek data masuk di Supabase                          |
+| Guestbook submit   | Browser | Tulis ucapan → submit → cek status "pending" di DB                           |
+| Admin login        | Browser | Navigate ke `/admin/login` → login → redirect ke dashboard                   |
+| CSV import         | Browser | Upload CSV di `/admin/guests` → cek guest baru terbuat di DB                 |
+| QR check-in        | Browser | Hit `/api/guests/checkin` with valid token → verify `checked_in = true`      |
+
+### 9.2 Manual Verification (User)
+
+1. **Visual & Animation Review** — User membuka undangan di mobile dan desktop, memverifikasi estetika sesuai expectation (slow-zoom, fade-in audio, scroll animations)
+2. **Responsive Layout** — Test di berbagai ukuran layar (375px, 768px, 1440px)
+3. **Maps Detection** — Klik "Petunjuk Lokasi" di iOS dan Android untuk verifikasi OS detection
+4. **Audio Experience** — Pastikan audio fade-in berjalan smooth, tombol pause/play bekerja
+5. **End-to-End Flow** — Mulai dari terima link → buka → RSVP → tulis ucapan → lihat di admin → approve → tampil di publik
+
+> [!NOTE]
+> Testing akan dilakukan secara bertahap per phase. Setiap phase akan di-build dan di-test sebelum lanjut ke phase berikutnya.
