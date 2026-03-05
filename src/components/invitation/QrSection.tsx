@@ -62,7 +62,7 @@ export default function QrSection({ guest }: QrSectionProps) {
           <p className="font-body text-sm text-charcoal-dark mt-4 font-medium">
             {guest.name}
           </p>
-          <p className="font-body text-[10px] text-charcoal-light/50 mt-1">
+          <p className="font-body text-[10px] text-charcoal-light/50 mt-1 font-mono">
             {guest.qr_token}
           </p>
         </div>

@@ -43,9 +43,19 @@ export function useCountdown(targetDate: string | Date): CountdownValues {
     };
   }, [targetDate]);
 
-  const [timeLeft, setTimeLeft] = useState<CountdownValues>(getTimeLeft);
+  const [timeLeft, setTimeLeft] = useState<CountdownValues>({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    isExpired: false,
+    totalMs: 0,
+  });
 
   useEffect(() => {
+    // Initial sync on client mount
+    setTimeLeft(getTimeLeft());
+
     const timer = setInterval(() => {
       setTimeLeft(getTimeLeft());
     }, 1000);

@@ -11,6 +11,8 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Papa from "papaparse";
 
+import * as XLSX from "xlsx";
+
 export default function GuestManagementPage() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,11 +51,84 @@ export default function GuestManagementPage() {
       setGuests((data || []) as Guest[]);
     }
     setLoading(false);
-  }, []);
+  }, [eventSlug]);
 
   useEffect(() => {
     fetchGuests();
   }, [fetchGuests]);
+
+  const processImportData = async (rows: any[]) => {
+    if (!rows.length) {
+      toast.error("File kosong atau format tidak sesuai");
+      return;
+    }
+
+    const eventId = getActiveEventId();
+    const guestsToInsert = rows
+      .filter((row) => row.name?.trim())
+      .map((row) => ({
+        name: row.name.toString().trim(),
+        slug: generateSlug(row.name.toString().trim()),
+        max_pax: row.max_pax ? parseInt(row.max_pax.toString()) || 2 : 2,
+        qr_token: generateQrToken(),
+        event_id: eventId,
+      }));
+
+    if (guestsToInsert.length === 0) {
+      toast.error("Tidak ada data tamu yang valid (kolom 'name' wajib ada)");
+      return;
+    }
+
+    const supabase = createClient();
+    const { error } = await supabase.from("guests").insert(guestsToInsert);
+
+    if (error) {
+      toast.error("Gagal import data: " + error.message);
+    } else {
+      toast.success(`${guestsToInsert.length} tamu berhasil diimport`);
+      fetchGuests();
+    }
+  };
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileExt = file.name.split(".").pop()?.toLowerCase();
+
+    if (fileExt === "csv") {
+      Papa.parse<{ name: string; max_pax?: string }>(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+          await processImportData(results.data);
+        },
+        error: () => {
+          toast.error("Gagal membaca file CSV");
+        },
+      });
+    } else if (fileExt === "xlsx" || fileExt === "xls") {
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        try {
+          const bstr = evt.target?.result;
+          const wb = XLSX.read(bstr, { type: "binary" });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const data = XLSX.utils.sheet_to_json(ws);
+          await processImportData(data);
+        } catch (err) {
+          toast.error("Gagal membaca file Excel");
+          console.error(err);
+        }
+      };
+      reader.readAsBinaryString(file);
+    } else {
+      toast.error("Format file tidak didukung. Gunakan CSV atau Excel.");
+    }
+
+    e.target.value = "";
+  };
 
   const handleAddGuest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,49 +163,6 @@ export default function GuestManagementPage() {
     } finally {
       setAddLoading(false);
     }
-  };
-
-  const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    Papa.parse<{ name: string; max_pax?: string }>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        const rows = results.data;
-        if (!rows.length) {
-          toast.error("CSV kosong");
-          return;
-        }
-
-        const eventId = getActiveEventId();
-        const guestsToInsert = rows
-          .filter((row) => row.name?.trim())
-          .map((row) => ({
-            name: row.name.trim(),
-            slug: generateSlug(row.name.trim()),
-            max_pax: row.max_pax ? parseInt(row.max_pax) || 2 : 2,
-            qr_token: generateQrToken(),
-            event_id: eventId,
-          }));
-
-        const supabase = createClient();
-        const { error } = await supabase.from("guests").insert(guestsToInsert);
-
-        if (error) {
-          toast.error("Gagal import CSV: " + error.message);
-        } else {
-          toast.success(`${guestsToInsert.length} tamu berhasil diimport`);
-          fetchGuests();
-        }
-      },
-      error: () => {
-        toast.error("Gagal membaca file CSV");
-      },
-    });
-
-    e.target.value = "";
   };
 
   const handleDelete = async (id: string) => {
@@ -175,8 +207,8 @@ export default function GuestManagementPage() {
           <label className="cursor-pointer">
             <input
               type="file"
-              accept=".csv"
-              onChange={handleCsvImport}
+              accept=".csv, .xlsx, .xls"
+              onChange={handleFileImport}
               className="hidden"
             />
             <span className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-body border border-gray-200 rounded-md text-charcoal hover:bg-gray-50 transition-colors">
@@ -192,7 +224,7 @@ export default function GuestManagementPage() {
                 <polyline points="17,8 12,3 7,8" />
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
-              Import CSV
+              Import CSV/Excel
             </span>
           </label>
 
@@ -203,6 +235,31 @@ export default function GuestManagementPage() {
           >
             + Tambah Tamu
           </Button>
+        </div>
+      </div>
+
+      {/* CSV Info Alert */}
+      <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-3 flex items-start gap-3">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="text-blue-500 shrink-0 mt-0.5"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+        <div className="font-body text-xs text-blue-700 leading-relaxed">
+          <p className="font-semibold mb-1">Panduan Import CSV / Excel:</p>
+          <p>
+            Pastikan file memiliki kolom header:{" "}
+            <code className="bg-blue-100 px-1 rounded">name</code> (wajib) dan{" "}
+            baris
+          </p>
         </div>
       </div>
 

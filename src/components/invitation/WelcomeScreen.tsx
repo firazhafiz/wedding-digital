@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { gsap } from "@/lib/gsap";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import type { EventInfo } from "@/types";
@@ -21,41 +21,72 @@ export default function WelcomeScreen({
 }: WelcomeScreenProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Entrance animation
   useEffect(() => {
-    if (!contentRef.current) return;
+    if (!mounted || !contentRef.current || hasAnimated.current || isOpen)
+      return;
 
-    // Use from instead of fromTo so that if it fails, it stays visible (at opacity 1)
-    const tl = gsap.timeline({ delay: 0.5 });
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ delay: 0.5 });
+      hasAnimated.current = true;
 
-    tl.from(contentRef.current.querySelectorAll(".welcome-animate"), {
-      opacity: 0,
-      y: 30,
-      duration: 0.8,
-      stagger: 0.2,
-      ease: "power3.out",
-    });
+      tl.fromTo(
+        ".welcome-animate",
+        {
+          opacity: 0,
+          y: 30,
+        },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          stagger: 0.2,
+          ease: "power3.out",
+          clearProps: "transform", // Clear Y transform but keep opacity 1
+        },
+      );
+    }, contentRef);
 
-    return () => {
-      tl.kill();
-    };
-  }, []);
+    return () => ctx.revert();
+  }, [mounted, isOpen]);
 
   // Exit animation
   useEffect(() => {
-    if (!isOpen || !containerRef.current) return;
+    if (!isOpen || !containerRef.current || !contentRef.current) return;
 
-    gsap.to(containerRef.current, {
-      yPercent: -100,
-      duration: 1.2,
-      ease: "power4.inOut",
+    const tl = gsap.timeline({
       onComplete: () => {
         if (containerRef.current) {
           containerRef.current.style.display = "none";
         }
       },
     });
+
+    // Content fade & scale out
+    tl.to(contentRef.current, {
+      opacity: 0,
+      scale: 0.9,
+      duration: 1,
+      ease: "power2.inOut",
+    });
+
+    // Background slide up
+    tl.to(
+      containerRef.current,
+      {
+        yPercent: -100,
+        duration: 1.5,
+        ease: "power4.inOut",
+      },
+      "<0.2", // Start shortly after content starts fading
+    );
   }, [isOpen]);
 
   // Robust scroll lock before opening
@@ -77,8 +108,8 @@ export default function WelcomeScreen({
     if (!isOpen) {
       lock();
     } else {
-      // Keep locked during the 1.2s slide-up animation
-      const timer = setTimeout(unlock, 1200);
+      // Keep locked during the 1.5s slide-up animation
+      const timer = setTimeout(unlock, 1500);
       return () => {
         clearTimeout(timer);
         unlock();

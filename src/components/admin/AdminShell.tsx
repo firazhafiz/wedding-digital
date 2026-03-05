@@ -196,16 +196,17 @@ export default function AdminShell({
             </p>
             {activeEvent && (
               <div className="mt-6 px-3 py-2.5 bg-gold/10 rounded-lg border border-gold/20 animate-fade-in group">
-                <div className="flex items-start justify-between mb-1.5 flex-wrap gap-2">
-                  <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between mb-1.5 gap-2">
+                  <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                     <p className="text-[9px] uppercase font-bold text-gold/60 tracking-wider">
                       Wedding Aktif
                     </p>
-                    <p className="text-[11px] text-white truncate font-medium block">
-                      {activeEvent.groom_name} & {activeEvent.bride_name}
+                    <p className="text-[11px] text-white truncate font-medium">
+                      {activeEvent.groom_name.split(" ")[0]} &{" "}
+                      {activeEvent.bride_name.split(" ")[0]}
                     </p>
                   </div>
-                  <div className="flex flex-col items-center gap-3">
+                  <div className="shrink-0 flex items-center">
                     <button
                       onClick={handleSwitchEvent}
                       className="text-[9px] font-bold text-white/40 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"

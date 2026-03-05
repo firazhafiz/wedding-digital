@@ -99,7 +99,7 @@ export default function GuestbookSection({
   };
 
   return (
-    <section ref={sectionRef} className="py-20 lg:py-32 px-6 bg-off-white">
+    <section ref={sectionRef} className="py-8 lg:py-32 px-6 bg-off-white">
       <div className="max-w-3xl mx-auto">
         {/* Title */}
         <div className="text-center mb-12">
