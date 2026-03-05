@@ -359,7 +359,7 @@ export default function GuestManagementPage() {
                       <p className="font-body text-sm font-medium text-charcoal-dark">
                         {guest.name}
                       </p>
-                      <p className="font-body text-[10px] text-charcoal-light/50 sm:hidden">
+                      <div className="flex items-center gap-2 mt-1 sm:hidden">
                         <Badge
                           variant={
                             guest.rsvp_status === "attending"
@@ -371,7 +371,22 @@ export default function GuestManagementPage() {
                         >
                           {guest.rsvp_status}
                         </Badge>
-                      </p>
+                        <span className="font-body text-[10px] text-charcoal-light flex items-center gap-1">
+                          <svg
+                            className="w-3 h-3"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                          </svg>
+                          {guest.rsvp_status === "attending"
+                            ? guest.rsvp_pax
+                            : `Max ${guest.max_pax}`}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <Badge
@@ -391,7 +406,15 @@ export default function GuestManagementPage() {
                       </Badge>
                     </td>
                     <td className="px-4 py-3 font-body text-sm text-charcoal hidden md:table-cell">
-                      {guest.rsvp_pax} / {guest.max_pax}
+                      {guest.rsvp_status === "attending" ? (
+                        <span className="font-semibold text-charcoal-dark">
+                          {guest.rsvp_pax}
+                        </span>
+                      ) : (
+                        <span className="text-charcoal-light">
+                          Max {guest.max_pax}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       {guest.checked_in ? (

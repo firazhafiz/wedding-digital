@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { getActiveEventId } from "@/lib/admin/context";
+import Link from "next/link";
 import type { Guest } from "@/types";
 import Badge from "@/components/ui/Badge";
 import StatsCard from "@/components/admin/StatsCard";
@@ -173,14 +174,36 @@ export default function CheckinTrackerPage() {
         />
       </div>
 
-      {/* Search */}
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Cari nama tamu..."
-        className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-lg text-sm font-body focus:outline-none focus:border-gold/30"
-      />
+      {/* Search & Scan Actions */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Cari nama tamu..."
+          className="flex-1 px-4 py-2.5 bg-white border border-gray-100 rounded-lg text-sm font-body focus:outline-none focus:border-gold/30"
+        />
+        <Link
+          href="/admin/checkin/scanner"
+          className="flex items-center justify-center gap-2 px-6 py-2.5 bg-charcoal-dark text-white rounded-lg hover:bg-charcoal transition-colors font-body text-sm font-medium whitespace-nowrap"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+            <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+            <rect x="7" y="7" width="10" height="10" rx="1" />
+          </svg>
+          Scan QR Code
+        </Link>
+      </div>
 
       {/* Guest List */}
       <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
@@ -191,10 +214,10 @@ export default function CheckinTrackerPage() {
                 <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase">
                   Nama
                 </th>
-                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase">
+                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden sm:table-cell">
                   Pax
                 </th>
-                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase">
+                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden sm:table-cell">
                   Status
                 </th>
                 <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden sm:table-cell">
@@ -230,13 +253,35 @@ export default function CheckinTrackerPage() {
                     key={guest.id}
                     className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
                   >
-                    <td className="px-4 py-3 font-body text-sm font-medium text-charcoal-dark">
-                      {guest.name}
+                    <td className="px-4 py-3">
+                      <p className="font-body text-sm font-medium text-charcoal-dark">
+                        {guest.name}
+                      </p>
+
+                      {/* Mobile Only: Stacked Info */}
+                      <div className="flex items-center gap-2 mt-1 sm:hidden">
+                        <span className="font-body text-[10px] text-charcoal-light flex items-center gap-1">
+                          <svg
+                            className="w-3 h-3"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                          </svg>
+                          {guest.rsvp_pax} Pax
+                        </span>
+                        {guest.checked_in && (
+                          <Badge variant="checked_in">✓</Badge>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 font-body text-sm text-charcoal">
+                    <td className="px-4 py-3 font-body text-sm text-charcoal hidden sm:table-cell">
                       {guest.rsvp_pax}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 hidden sm:table-cell">
                       {guest.checked_in ? (
                         <Badge variant="checked_in">Checked-in</Badge>
                       ) : (
