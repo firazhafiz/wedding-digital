@@ -3,6 +3,7 @@
 -- ==========================================
 
 -- 0. Clean old tables if they exist
+DROP TABLE IF EXISTS public.order_requests CASCADE;
 DROP TABLE IF EXISTS public.gallery CASCADE;
 DROP TABLE IF EXISTS public.storyline CASCADE;
 DROP TABLE IF EXISTS public.gifts CASCADE;
@@ -126,6 +127,21 @@ CREATE TABLE public.gallery (
   created_at timestamptz DEFAULT now()
 );
 
+CREATE TABLE public.order_requests (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  package_type text NOT NULL DEFAULT 'starter',
+  client_name text NOT NULL,
+  client_phone text NOT NULL,
+  client_email text,
+  groom_name text NOT NULL,
+  bride_name text NOT NULL,
+  event_date text,
+  event_location text,
+  notes text,
+  status text DEFAULT 'pending',
+  created_at timestamptz DEFAULT now()
+);
+
 -- ==========================================
 -- 2. Row Level Security (RLS)
 -- ==========================================
@@ -136,6 +152,7 @@ ALTER TABLE public.guestbook ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.storyline ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gifts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_requests ENABLE ROW LEVEL SECURITY;
 
 -- 2a. Public SELECT Access (For the Invitation Page)
 -- Allow anyone to view event and guest details by slug
@@ -168,6 +185,12 @@ CREATE POLICY "Allow authenticated manage all gallery" ON public.gallery
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 CREATE POLICY "Allow authenticated manage all gifts" ON public.gifts
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Order Requests: Public can insert and select their own, admin can manage all
+CREATE POLICY "Allow public insert on order_requests" ON public.order_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public select on order_requests" ON public.order_requests FOR SELECT USING (true);
+CREATE POLICY "Allow authenticated manage all order_requests" ON public.order_requests
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- ==========================================

@@ -150,7 +150,8 @@ export default function AdminEventsPage() {
           >
             <div className="h-24 bg-gold/5 flex items-center justify-center border-b border-gray-50">
               <span className="font-display text-lg text-gold italic">
-                {event.groom_name} & {event.bride_name}
+                {event.groom_name.split(" ")[0]} &{" "}
+                {event.bride_name.split(" ")[0]}
               </span>
             </div>
             <div className="p-6">

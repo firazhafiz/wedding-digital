@@ -18,13 +18,16 @@ const urbanist = Urbanist({
 });
 
 export const metadata: Metadata = {
-  title: "Wedding Invitation",
+  title: "AkaDigital - Your DIgital Wedding Invitation",
   description:
     "You are cordially invited to celebrate our special day. Open your personal invitation to RSVP.",
   openGraph: {
     title: "Wedding Invitation",
     description: "You are cordially invited to celebrate our special day.",
     type: "website",
+  },
+  icons: {
+    icon: "/assets/meta.svg",
   },
 };
 

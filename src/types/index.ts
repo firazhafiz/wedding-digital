@@ -153,3 +153,19 @@ export interface DashboardStats {
   totalCheckedIn: number;
   totalPax: number;
 }
+
+// Order Request
+export interface OrderRequest {
+  id: string;
+  package_type: string;
+  client_name: string;
+  client_phone: string;
+  client_email: string | null;
+  groom_name: string;
+  bride_name: string;
+  event_date: string | null;
+  event_location: string | null;
+  notes: string | null;
+  status: "pending" | "contacted" | "confirmed" | "rejected";
+  created_at: string;
+}

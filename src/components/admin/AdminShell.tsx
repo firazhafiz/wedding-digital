@@ -30,6 +30,7 @@ const navItems = [
       </svg>
     ),
   },
+
   {
     label: "Katalog",
     href: "/admin/events",
@@ -45,6 +46,24 @@ const navItems = [
         <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5z" />
         <path d="M8 7h6" />
         <path d="M8 11h8" />
+      </svg>
+    ),
+  },
+  {
+    label: "Request",
+    href: "/admin/requests",
+    icon: (
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+        <rect x="8" y="2" width="8" height="4" rx="1" />
+        <path d="M9 14l2 2 4-4" />
       </svg>
     ),
   },
@@ -137,7 +156,8 @@ export default function AdminShell({
       if (
         !eventId &&
         pathname !== "/admin/events" &&
-        pathname !== "/admin/login"
+        pathname !== "/admin/login" &&
+        pathname !== "/admin/requests"
       ) {
         router.push("/admin/events");
         return;
@@ -194,41 +214,46 @@ export default function AdminShell({
             <p className="font-body text-[10px] text-white/30 uppercase tracking-widest mt-0.5">
               Wedding Dashboard
             </p>
-            {activeEvent && (
-              <div className="mt-6 px-3 py-2.5 bg-gold/10 rounded-lg border border-gold/20 animate-fade-in group">
-                <div className="flex items-center justify-between mb-1.5 gap-2">
-                  <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                    <p className="text-[9px] uppercase font-bold text-gold/60 tracking-wider">
-                      Wedding Aktif
-                    </p>
-                    <p className="text-[11px] text-white truncate font-medium">
-                      {activeEvent.groom_name.split(" ")[0]} &{" "}
-                      {activeEvent.bride_name.split(" ")[0]}
-                    </p>
-                  </div>
-                  <div className="shrink-0 flex items-center">
-                    <button
-                      onClick={handleSwitchEvent}
-                      className="text-[9px] font-bold text-white/40 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>Ganti</span>
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
+            {activeEvent &&
+              pathname !== "/admin/events" &&
+              pathname !== "/admin/requests" && (
+                <div className="mt-6 px-3 py-2.5 bg-gold/10 rounded-lg border border-gold/20 animate-fade-in group">
+                  <div className="flex items-center justify-between mb-1.5 gap-2">
+                    <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                      <p className="text-[9px] uppercase font-bold text-gold/60 tracking-wider">
+                        Wedding Aktif
+                      </p>
+                      <p className="text-[11px] text-white truncate font-medium">
+                        {activeEvent.groom_name.split(" ")[0]} &{" "}
+                        {activeEvent.bride_name.split(" ")[0]}
+                      </p>
+                    </div>
+                    <div className="shrink-0 flex items-center">
+                      <button
+                        onClick={() => {
+                          handleSwitchEvent();
+                          setSidebarOpen(false);
+                        }}
+                        className="text-[9px] font-bold text-white/40 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
                       >
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        <rect x="3" y="11" width="18" height="11" rx="2" />
-                        <circle cx="12" cy="16" r="2" />
-                      </svg>
-                    </button>
+                        <span>Ganti</span>
+                        <svg
+                          width="10"
+                          height="10"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                          <rect x="3" y="11" width="18" height="11" rx="2" />
+                          <circle cx="12" cy="16" r="2" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
 
           {/* Nav */}
@@ -236,43 +261,30 @@ export default function AdminShell({
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               const isKatalog = item.href === "/admin/events";
+              const isRequest = item.href === "/admin/requests";
 
-              // Always show Katalog if NO event is selected
-              if (isKatalog && !activeEvent) {
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-body transition-all duration-200",
-                      isActive
-                        ? "bg-gold/10 text-gold shadow-sm"
-                        : "text-white/50 hover:text-white/80 hover:bg-white/5",
-                    )}
-                  >
-                    <span className={isActive ? "text-gold" : "text-white/40"}>
-                      {item.icon}
-                    </span>
-                    {item.label}
-                  </Link>
-                );
+              // Define current mode
+              const isOnManagementPage =
+                pathname === "/admin/events" || pathname === "/admin/requests";
+
+              // 1. If on Katalog or Request page, ONLY show those two management menus
+              if (isOnManagementPage) {
+                if (!isKatalog && !isRequest) return null;
               }
-
-              // Hide Katalog if event IS selected (per user request)
-              if (isKatalog && activeEvent) return null;
-
-              // Hide project-specific menus if NO event is selected
-              if (!isKatalog && !activeEvent) return null;
-
-              // Special case: if we are on Katalog page, hide project-specific menus (except maybe dashboard)
-              // But user wants to land on Katalog first, then dashboard.
-              // If on Katalog, hide everything else to avoid confusion.
-              if (pathname === "/admin/events" && !isKatalog) return null;
+              // 2. If NOT on management page but NO event is selected, redirect-like behavior (show management)
+              else if (!activeEvent) {
+                if (!isKatalog && !isRequest) return null;
+              }
+              // 3. If NOT on management page AND an event IS selected, HIDE management menus
+              else {
+                if (isKatalog || isRequest) return null;
+              }
 
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => setSidebarOpen(false)}
                   className={cn(
                     "flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-body transition-all duration-200",
                     isActive
@@ -292,7 +304,10 @@ export default function AdminShell({
           {/* Logout */}
           <div className="p-4 border-t border-white/5 shrink-0">
             <button
-              onClick={handleLogout}
+              onClick={() => {
+                handleLogout();
+                setSidebarOpen(false);
+              }}
               className="flex items-center gap-3 w-full px-4 py-2.5 rounded-md text-sm font-body text-white/40 hover:text-red-400 hover:bg-red-500/5 transition-all duration-200"
             >
               <svg
