@@ -75,12 +75,9 @@ export default function InvitationClient({
             src={eventInfo?.audio_url || "/audio/wedding-music.mp3"}
             autoPlay={audioReady}
           />
-
           {/* Hero */}
           <HeroSection eventInfo={eventInfo} guestName={guest.name} />
-
           <OrnamentalDivider variant="flourish" />
-
           {/* Countdown & Schedule */}
           {eventInfo?.show_countdown !== false && (
             <>
@@ -88,24 +85,22 @@ export default function InvitationClient({
               <OrnamentalDivider variant="diamond" />
             </>
           )}
-
           {/* Couple / Mempelai */}
           <CoupleSection eventInfo={eventInfo} />
-
           {/* Joint Story & Gallery Section with Background */}
-          <div className="relative overflow-hidden">
+          <div className="relative w-full [clip-path:inset(0)]">
             {eventInfo?.story_gallery_bg_url && (
               <div
-                className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat grayscale"
+                className="fixed inset-0 z-0 h-dvh w-full bg-cover bg-center bg-no-repeat grayscale"
                 style={{
                   backgroundImage: `url(${eventInfo.story_gallery_bg_url})`,
-                  backgroundAttachment: "fixed",
+                  transform: "translateZ(0)", // Force hardware acceleration
                 }}
               />
             )}
 
             {/* Dark Overlay for better text readability */}
-            <div className="absolute inset-0 z-0 bg-black/70" />
+            <div className="absolute inset-0 z-0 bg-black/70 pointer-events-none" />
 
             <div className="relative z-10">
               {/* Divider inside background */}
@@ -141,12 +136,9 @@ export default function InvitationClient({
               )}
             </div>
           </div>
-
           {/* RSVP */}
           <RsvpSection guest={guest} eventId={eventInfo?.id} />
-
           <OrnamentalDivider variant="flourish" />
-
           {/* Guestbook */}
           {eventInfo?.show_guestbook !== false && (
             <>
@@ -158,17 +150,14 @@ export default function InvitationClient({
               <OrnamentalDivider variant="diamond" />
             </>
           )}
-
           {/* Gift / Angpao */}
           {eventInfo?.show_gifts !== false && (
             <>
               <GiftSection guest={guest} eventInfo={eventInfo} />
             </>
           )}
-
           {/* Protocol Kesehatan */}
           <ProtocolSection />
-
           <OrnamentalDivider variant="flourish" />
           {/* Footer */}
           <FooterSection eventInfo={eventInfo} />
