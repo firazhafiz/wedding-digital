@@ -18,16 +18,58 @@ const urbanist = Urbanist({
 });
 
 export const metadata: Metadata = {
-  title: "AkaDigital - Your DIgital Wedding Invitation",
+  metadataBase: new URL("https://akadigital.vercel.app"), // Replace with production URL when ready
+  title: {
+    default: "AkaDigital - Premium Digital Wedding Invitation",
+    template: "%s | AkaDigital",
+  },
   description:
-    "You are cordially invited to celebrate our special day. Open your personal invitation to RSVP.",
+    "Solusi undangan pernikahan digital premium. Modern, elegan, dan penuh fitur untuk hari spesial Anda.",
+  keywords: [
+    "undangan digital",
+    "wedding invitation",
+    "undangan online",
+    "akadigital",
+    "pernikahan",
+  ],
+  authors: [{ name: "AkaDigital Team" }],
+  creator: "AkaDigital",
+  publisher: "AkaDigital",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   openGraph: {
-    title: "Wedding Invitation",
-    description: "You are cordially invited to celebrate our special day.",
+    title: "AkaDigital - Premium Digital Wedding Invitation",
+    description:
+      "Rayakan momen spesial Anda dengan undangan digital yang elegan dan modern.",
+    url: "https://akadigital.vercel.app",
+    siteName: "AkaDigital",
+    locale: "id_ID",
     type: "website",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
   icons: {
     icon: "/assets/meta.svg",
+    shortcut: "/assets/meta.svg",
+    apple: "/assets/meta.svg",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AkaDigital - Premium Digital Wedding Invitation",
+    description:
+      "Rayakan momen spesial Anda dengan undangan digital yang elegan dan modern.",
   },
 };
 

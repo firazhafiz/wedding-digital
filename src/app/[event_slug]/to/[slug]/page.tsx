@@ -14,18 +14,51 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps) {
-  const { slug } = await params;
+  const { event_slug, slug } = await params;
+  const supabase = await createClient();
+
+  // Fetch event for metadata (hero_photo_url is the correct column name)
+  const { data: event } = await supabase
+    .from("event_info")
+    .select("groom_name, bride_name, hero_photo_url")
+    .eq("event_slug", event_slug)
+    .single();
+
   const guestName = slug
     .split("-")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 
+  const coupleNames = event
+    ? `${event.groom_name.split(" ")[0]} & ${event.bride_name.split(" ")[0]}`
+    : "";
+
+  const title = coupleNames
+    ? `The Wedding of ${coupleNames}`
+    : "Wedding Invitation";
+  const ogTitle = coupleNames
+    ? `${title} - Spesial untuk ${guestName}`
+    : `Wedding Invitation - Spesial untuk ${guestName}`;
+  const description = `Special invitation for ${guestName}. You are cordially invited to celebrate our special day.`;
+
   return {
-    title: `Wedding Invitation — ${guestName}`,
-    description: `You are cordially invited to our wedding celebration. Special invitation for ${guestName}.`,
+    title: `${title} | ${guestName}`,
+    description,
     openGraph: {
-      title: `Wedding Invitation — ${guestName}`,
-      description: `Special invitation for ${guestName}`,
+      title: ogTitle,
+      description,
+      images: event?.hero_photo_url
+        ? [event.hero_photo_url]
+        : ["/assets/og-image.jpg"],
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ogTitle,
+      description,
+      images: event?.hero_photo_url
+        ? [event.hero_photo_url]
+        : ["/assets/og-image.jpg"],
     },
   };
 }
