@@ -3,13 +3,24 @@ import { createClient } from "@/lib/supabase/server";
 import { createGuestSchema, formatZodErrors } from "@/lib/validations";
 import { generateSlug, generateQrToken } from "@/lib/utils";
 
-// GET: Fetch all guests
-export async function GET() {
+// GET: Fetch all guests for an event
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const eventId = searchParams.get("event_id");
+
+    if (!eventId) {
+      return NextResponse.json(
+        { error: "ID event diperlukan" },
+        { status: 400 },
+      );
+    }
+
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("guests")
       .select("*")
+      .eq("event_id", eventId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -41,7 +52,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, max_pax } = result.data;
+    const { name, max_pax, event_id } = result.data;
     const supabase = await createClient();
 
     const slug = generateSlug(name);
@@ -54,6 +65,7 @@ export async function POST(request: Request) {
         slug,
         max_pax,
         qr_token: qrToken,
+        event_id,
       })
       .select()
       .single();

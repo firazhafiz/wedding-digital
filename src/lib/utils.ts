@@ -149,3 +149,23 @@ export function debounce<T extends (...args: any[]) => any>(
     timeout = setTimeout(() => func(...args), wait);
   };
 }
+
+// ============================================
+// YouTube Utils
+// ============================================
+
+/**
+ * Extracts YouTube video ID from various URL formats.
+ */
+export function getYoutubeId(url: string): string | null {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+}
+
+/**
+ * Checks if a URL is from YouTube.
+ */
+export function isYoutubeUrl(url: string): boolean {
+  return /youtube\.com|youtu\.be/.test(url);
+}

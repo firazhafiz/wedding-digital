@@ -7,9 +7,13 @@ import type { StorylineItem } from "@/types";
 
 interface StorylineSectionProps {
   items: StorylineItem[];
+  isDark?: boolean;
 }
 
-export default function StorylineSection({ items }: StorylineSectionProps) {
+export default function StorylineSection({
+  items,
+  isDark = false,
+}: StorylineSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
 
@@ -82,14 +86,27 @@ export default function StorylineSection({ items }: StorylineSectionProps) {
   }, [items]);
 
   return (
-    <section ref={sectionRef} className="py-12 lg:py-16 px-6 bg-off-white">
+    <section
+      ref={sectionRef}
+      className={`py-12 lg:py-20 px-6 transition-colors duration-500 ${
+        isDark ? "bg-transparent" : "bg-off-white"
+      }`}
+    >
       <div className="max-w-4xl mx-auto">
         {/* Title */}
         <div ref={titleRef} className="text-center mb-16 lg:mb-20">
-          <p className="title-animate font-body text-charcoal-light text-xs tracking-[0.3em] uppercase mb-3">
+          <p
+            className={`title-animate font-body text-xs tracking-[0.3em] uppercase mb-3 ${
+              isDark ? "text-white/80" : "text-charcoal-light"
+            }`}
+          >
             Our Journey
           </p>
-          <h2 className="title-animate font-display text-3xl md:text-5xl text-charcoal-dark">
+          <h2
+            className={`title-animate font-display text-3xl md:text-5xl ${
+              isDark ? "text-white" : "text-charcoal-dark"
+            }`}
+          >
             Cerita Kami
           </h2>
         </div>
@@ -97,10 +114,18 @@ export default function StorylineSection({ items }: StorylineSectionProps) {
         {/* Timeline */}
         <div className="relative">
           {/* Center line */}
-          <div className="timeline-line absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-px bg-gold/20 origin-top hidden md:block" />
+          <div
+            className={`timeline-line absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-px origin-top hidden md:block ${
+              isDark ? "bg-gold/60" : "bg-gold/20"
+            }`}
+          />
 
           {/* Mobile center line */}
-          <div className="timeline-line absolute left-6 top-0 bottom-0 w-px bg-gold/20 origin-top md:hidden" />
+          <div
+            className={`timeline-line absolute left-6 top-0 bottom-0 w-px origin-top md:hidden ${
+              isDark ? "bg-gold/60" : "bg-gold/20"
+            }`}
+          />
 
           {/* Items */}
           <div className="space-y-12 md:space-y-16">
@@ -112,7 +137,11 @@ export default function StorylineSection({ items }: StorylineSectionProps) {
                 }`}
               >
                 {/* Dot */}
-                <div className="absolute left-6 md:left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-gold border-2 border-off-white z-10" />
+                <div
+                  className={`absolute left-6 md:left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-gold z-10 border-2 ${
+                    isDark ? "border-black/50" : "border-off-white"
+                  }`}
+                />
 
                 {/* Content */}
                 <div
@@ -126,20 +155,28 @@ export default function StorylineSection({ items }: StorylineSectionProps) {
                   </span>
 
                   {/* Title */}
-                  <h3 className="font-body font-semibold text-lg text-charcoal-dark mb-2">
+                  <h3
+                    className={`font-body font-semibold text-lg mb-2 ${
+                      isDark ? "text-white" : "text-charcoal-dark"
+                    }`}
+                  >
                     {item.title}
                   </h3>
 
                   {/* Description */}
                   {item.description && (
-                    <p className="font-body text-sm text-charcoal-light leading-relaxed">
+                    <p
+                      className={`font-body text-sm leading-relaxed ${
+                        isDark ? "text-white/90" : "text-charcoal-light"
+                      }`}
+                    >
                       {item.description}
                     </p>
                   )}
 
                   {/* Photo */}
                   {item.photo_url && (
-                    <div className="mt-4 overflow-hidden rounded-sm relative w-full">
+                    <div className="mt-4 overflow-hidden rounded-sm relative w-full border border-gold/10">
                       <NextImage
                         src={item.photo_url}
                         alt={item.title}

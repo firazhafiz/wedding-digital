@@ -35,54 +35,22 @@ export default function OrnamentalDivider({
 
   // Flourish variant (default)
   return (
-    <div className={cn("flex items-center justify-center py-10", className)}>
-      <svg
-        width="200"
-        height="30"
-        viewBox="0 0 200 30"
-        fill="none"
-        className="text-gold/50"
-      >
-        {/* Left flourish */}
-        <path
-          d="M0 15 C20 15, 30 5, 50 5 S80 15, 85 15"
-          stroke="currentColor"
-          strokeWidth="0.8"
+    <div className={cn("flex items-center justify-center py-12", className)}>
+      <div className="relative flex items-center gap-6 text-gold/60">
+        <div className="w-16 md:w-24 h-px bg-linear-to-r from-transparent to-current" />
+        <svg
+          width="32"
+          height="32"
+          viewBox="0 0 24 24"
           fill="none"
-        />
-        <path
-          d="M0 15 C20 15, 30 25, 50 25 S80 15, 85 15"
           stroke="currentColor"
-          strokeWidth="0.8"
-          fill="none"
-        />
-
-        {/* Center ornament */}
-        <circle cx="100" cy="15" r="3" fill="currentColor" opacity="0.6" />
-        <circle
-          cx="100"
-          cy="15"
-          r="6"
-          stroke="currentColor"
-          strokeWidth="0.5"
-          fill="none"
-          opacity="0.4"
-        />
-
-        {/* Right flourish */}
-        <path
-          d="M200 15 C180 15, 170 5, 150 5 S120 15, 115 15"
-          stroke="currentColor"
-          strokeWidth="0.8"
-          fill="none"
-        />
-        <path
-          d="M200 15 C180 15, 170 25, 150 25 S120 15, 115 15"
-          stroke="currentColor"
-          strokeWidth="0.8"
-          fill="none"
-        />
-      </svg>
+          strokeWidth="1.5"
+          className="opacity-90"
+        >
+          <path d="M12 2C12 2 14 8 20 8M12 2C12 2 10 8 4 8M12 22C12 22 14 16 20 16M12 22C12 22 10 16 4 16M2 12C2 12 8 10 8 4M2 12C2 12 8 14 8 20M22 12C22 12 16 10 16 4M22 12C22 12 16 14 16 20" />
+        </svg>
+        <div className="w-16 md:w-24 h-px bg-linear-to-l from-transparent to-current" />
+      </div>
     </div>
   );
 }

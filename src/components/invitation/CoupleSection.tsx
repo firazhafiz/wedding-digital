@@ -58,7 +58,7 @@ function CoupleCard({
       </div>
 
       {/* Name */}
-      <h3 className="font-display text-3xl md:text-4xl lg:text-5xl text-charcoal-dark mb-4">
+      <h3 className="font-display text-3xl md:text-4xl text-charcoal-dark mb-4">
         {name}
       </h3>
 

@@ -15,15 +15,34 @@
    Tailwind CSS v4 — Design System Tokens
    ============================================ */
 @theme {
-  /* Colors */
-  --color-gold: #d4af37;
-  --color-gold-light: #e8d48b;
-  --color-gold-dark: #b8960c;
+  /* Dynamic Colors from CMS */
+  --color-gold: var(--color-primary, #d4af37);
+  --color-gold-light: color-mix(
+    in srgb,
+    var(--color-primary, #d4af37),
+    white 20%
+  );
+  --color-gold-dark: color-mix(
+    in srgb,
+    var(--color-primary, #d4af37),
+    black 20%
+  );
+
+  --color-charcoal-dark: var(--color-secondary, #1a1a1a);
+  --color-charcoal: color-mix(
+    in srgb,
+    var(--color-secondary, #1a1a1a),
+    white 20%
+  );
+  --color-charcoal-light: color-mix(
+    in srgb,
+    var(--color-secondary, #1a1a1a),
+    white 40%
+  );
+
+  /* Static System Colors */
   --color-off-white: #faf9f6;
   --color-cream: #f5f0e8;
-  --color-charcoal: #333333;
-  --color-charcoal-light: #666666;
-  --color-charcoal-dark: #1a1a1a;
 
   /* Fonts */
   --font-script: "Pinyon Script", cursive;
@@ -79,6 +98,23 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-gold);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.2);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.4);
 }
 
 /* ============================================

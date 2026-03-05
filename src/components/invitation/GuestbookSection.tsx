@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 
 interface GuestbookSectionProps {
   guest: Guest;
+  eventId: string;
   initialEntries: GuestbookEntry[];
 }
 
@@ -30,6 +31,7 @@ function formatTimeAgo(dateStr: string): string {
 
 export default function GuestbookSection({
   guest,
+  eventId,
   initialEntries,
 }: GuestbookSectionProps) {
   const [entries, setEntries] = useState<GuestbookEntry[]>(initialEntries);
@@ -75,6 +77,7 @@ export default function GuestbookSection({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           guestId: guest.id,
+          event_id: eventId,
           guestName: guest.name,
           message: message.trim(),
         }),

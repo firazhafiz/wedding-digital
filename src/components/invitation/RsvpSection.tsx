@@ -9,11 +9,13 @@ import Button from "@/components/ui/Button";
 
 interface RsvpSectionProps {
   guest: Guest;
+  eventId?: string;
   onRsvpSuccess?: (status: "attending" | "not_attending") => void;
 }
 
 export default function RsvpSection({
   guest,
+  eventId,
   onRsvpSuccess,
 }: RsvpSectionProps) {
   const [status, setStatus] = useState<"attending" | "not_attending" | "">(
@@ -42,6 +44,7 @@ export default function RsvpSection({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           guestId: guest.id,
+          event_id: eventId,
           status,
           pax: status === "attending" ? pax : 0,
           message: message || undefined,

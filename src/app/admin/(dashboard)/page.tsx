@@ -1,15 +1,42 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { COOKIE_NAME } from "@/lib/admin/context";
 import StatsCard from "@/components/admin/StatsCard";
+import LiveLink from "@/components/admin/LiveLink";
 import type { GuestbookEntry } from "@/types";
 
 async function getDashboardData() {
+  const cookieStore = await cookies();
+  const eventId = cookieStore.get(COOKIE_NAME)?.value;
+
+  if (!eventId) {
+    redirect("/admin/events");
+  }
+
   const supabase = await createClient();
 
-  const { data: guests } = await supabase.from("guests").select("*");
+  // 1. Get Event Info
+  const { data: eventInfo } = await supabase
+    .from("event_info")
+    .select("id, event_slug")
+    .eq("id", eventId)
+    .single();
+
+  if (!eventInfo) {
+    redirect("/admin/events");
+  }
+
+  // 2. Filter everything by event_id
+  const { data: guests } = await supabase
+    .from("guests")
+    .select("*")
+    .eq("event_id", eventInfo.id);
 
   const { data: recentGuestbook } = await supabase
     .from("guestbook")
     .select("*")
+    .eq("event_id", eventInfo.id)
     .order("created_at", { ascending: false })
     .limit(5);
 
@@ -27,22 +54,32 @@ async function getDashboardData() {
       0,
     ),
     recentGuestbook: (recentGuestbook || []) as GuestbookEntry[],
+    eventSlug: eventInfo.event_slug,
   };
 }
 
 export default async function AdminDashboardPage() {
   const stats = await getDashboardData();
 
+  if (!stats)
+    return <div className="p-8 text-center">Event tidak ditemukan.</div>;
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div>
-        <h1 className="font-body text-2xl font-semibold text-charcoal-dark">
-          Dashboard
-        </h1>
-        <p className="font-body text-sm text-charcoal-light mt-1">
-          Ringkasan undangan dan kehadiran
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="font-body text-2xl font-semibold text-charcoal-dark">
+            Dashboard
+          </h1>
+          <p className="font-body text-sm text-charcoal-light mt-1">
+            Ringkasan undangan dan kehadiran
+          </p>
+        </div>
+        <LiveLink
+          slug={stats.eventSlug}
+          className="inline-flex w-fit items-center gap-2 px-6 py-2.5 bg-gold text-white rounded-lg text-sm font-semibold hover:bg-gold-dark transition-all shadow-sm hover:shadow-md"
+        />
       </div>
 
       {/* Stats Grid */}

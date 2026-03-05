@@ -1,10 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getActiveEventId, clearActiveEventId } from "@/lib/admin/context";
+import LiveLink from "./LiveLink";
+import type { EventInfo } from "@/types";
 
 const navItems = [
   {
@@ -23,6 +27,24 @@ const navItems = [
         <rect x="14" y="3" width="7" height="7" rx="1" />
         <rect x="3" y="14" width="7" height="7" rx="1" />
         <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    label: "Katalog",
+    href: "/admin/events",
+    icon: (
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5z" />
+        <path d="M8 7h6" />
+        <path d="M8 11h8" />
       </svg>
     ),
   },
@@ -78,6 +100,23 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    label: "Pengaturan",
+    href: "/admin/settings",
+    icon: (
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      </svg>
+    ),
+  },
 ];
 
 export default function AdminShell({
@@ -86,8 +125,41 @@ export default function AdminShell({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeEvent, setActiveEvent] = useState<EventInfo | null>(null);
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchActiveEvent = async () => {
+      const eventId = getActiveEventId();
+
+      // If we are not on the events page and have no active event, redirect to katalog
+      if (
+        !eventId &&
+        pathname !== "/admin/events" &&
+        pathname !== "/admin/login"
+      ) {
+        router.push("/admin/events");
+        return;
+      }
+
+      if (eventId) {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("event_info")
+          .select("*")
+          .eq("id", eventId)
+          .single();
+        if (data) {
+          setActiveEvent(data as EventInfo);
+        } else if (pathname !== "/admin/events") {
+          // If event was deleted or not found but we have a cookie, clear it and redirect
+          router.push("/admin/events");
+        }
+      }
+    };
+    fetchActiveEvent();
+  }, [pathname, router]);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -97,36 +169,113 @@ export default function AdminShell({
     router.refresh();
   };
 
+  const handleSwitchEvent = () => {
+    clearActiveEventId();
+    setActiveEvent(null);
+    router.push("/admin/events");
+    router.refresh();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-charcoal-dark transform transition-transform duration-300 lg:translate-x-0 lg:static lg:shrink-0",
+          "fixed inset-y-0 left-0 z-40 w-64 bg-charcoal-dark transform transition-transform duration-300 lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-screen">
           {/* Logo */}
-          <div className="p-6 border-b border-white/5">
-            <h2 className="font-display text-xl text-off-white">Admin</h2>
-            <p className="font-body text-xs text-white/30 mt-0.5">
+          <div className="p-6 border-b border-white/5 shrink-0">
+            <h2 className="font-display text-xl text-off-white italic">
+              Admin
+            </h2>
+            <p className="font-body text-[10px] text-white/30 uppercase tracking-widest mt-0.5">
               Wedding Dashboard
             </p>
+            {activeEvent && (
+              <div className="mt-6 px-3 py-2.5 bg-gold/10 rounded-lg border border-gold/20 animate-fade-in group">
+                <div className="flex items-start justify-between mb-1.5 flex-wrap gap-2">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-[9px] uppercase font-bold text-gold/60 tracking-wider">
+                      Wedding Aktif
+                    </p>
+                    <p className="text-[11px] text-white truncate font-medium block">
+                      {activeEvent.groom_name} & {activeEvent.bride_name}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center gap-3">
+                    <button
+                      onClick={handleSwitchEvent}
+                      className="text-[9px] font-bold text-white/40 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Ganti</span>
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        <rect x="3" y="11" width="18" height="11" rx="2" />
+                        <circle cx="12" cy="16" r="2" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Nav */}
-          <nav className="flex-1 p-4 space-y-1">
+          <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
+              const isKatalog = item.href === "/admin/events";
+
+              // Always show Katalog if NO event is selected
+              if (isKatalog && !activeEvent) {
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-body transition-all duration-200",
+                      isActive
+                        ? "bg-gold/10 text-gold shadow-sm"
+                        : "text-white/50 hover:text-white/80 hover:bg-white/5",
+                    )}
+                  >
+                    <span className={isActive ? "text-gold" : "text-white/40"}>
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </Link>
+                );
+              }
+
+              // Hide Katalog if event IS selected (per user request)
+              if (isKatalog && activeEvent) return null;
+
+              // Hide project-specific menus if NO event is selected
+              if (!isKatalog && !activeEvent) return null;
+
+              // Special case: if we are on Katalog page, hide project-specific menus (except maybe dashboard)
+              // But user wants to land on Katalog first, then dashboard.
+              // If on Katalog, hide everything else to avoid confusion.
+              if (pathname === "/admin/events" && !isKatalog) return null;
+
               return (
-                <a
+                <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
                     "flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-body transition-all duration-200",
                     isActive
-                      ? "bg-gold/10 text-gold"
+                      ? "bg-gold/10 text-gold shadow-sm"
                       : "text-white/50 hover:text-white/80 hover:bg-white/5",
                   )}
                 >
@@ -134,13 +283,13 @@ export default function AdminShell({
                     {item.icon}
                   </span>
                   {item.label}
-                </a>
+                </Link>
               );
             })}
           </nav>
 
           {/* Logout */}
-          <div className="p-4 border-t border-white/5">
+          <div className="p-4 border-t border-white/5 shrink-0">
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 w-full px-4 py-2.5 rounded-md text-sm font-body text-white/40 hover:text-red-400 hover:bg-red-500/5 transition-all duration-200"
@@ -172,7 +321,7 @@ export default function AdminShell({
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen lg:pl-64">
         {/* Topbar */}
         <header className="sticky top-0 z-20 bg-white border-b border-gray-200 px-6 py-3 md:px-0 md:py-0 flex items-center justify-between lg:justify-end">
           {/* Hamburger (mobile) */}

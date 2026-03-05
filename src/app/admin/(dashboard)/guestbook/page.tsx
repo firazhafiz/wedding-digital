@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { getActiveEventId } from "@/lib/admin/context";
 import type { GuestbookEntry } from "@/types";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -15,10 +16,14 @@ export default function GuestbookModerationPage() {
   >("pending");
 
   const fetchEntries = useCallback(async () => {
+    const eventId = getActiveEventId();
+    if (!eventId) return;
+
     const supabase = createClient();
     let query = supabase
       .from("guestbook")
       .select("*")
+      .eq("event_id", eventId)
       .order("created_at", { ascending: false });
 
     if (filter !== "all") {

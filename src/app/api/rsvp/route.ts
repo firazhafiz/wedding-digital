@@ -15,10 +15,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const { guestId, status, pax, message } = result.data;
+    const { guestId, status, pax, message, event_id } = result.data;
     const supabase = await createClient();
 
-    // Update guest RSVP
+    // Update guest RSVP (filtered by event_id for security)
     const { data, error } = await supabase
       .from("guests")
       .update({
@@ -28,6 +28,7 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", guestId)
+      .eq("event_id", event_id)
       .select()
       .single();
 

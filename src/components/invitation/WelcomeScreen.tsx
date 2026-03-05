@@ -26,19 +26,16 @@ export default function WelcomeScreen({
   useEffect(() => {
     if (!contentRef.current) return;
 
+    // Use from instead of fromTo so that if it fails, it stays visible (at opacity 1)
     const tl = gsap.timeline({ delay: 0.5 });
 
-    tl.fromTo(
-      contentRef.current.querySelectorAll(".welcome-animate"),
-      { opacity: 0, y: 30 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.8,
-        stagger: 0.2,
-        ease: "power3.out",
-      },
-    );
+    tl.from(contentRef.current.querySelectorAll(".welcome-animate"), {
+      opacity: 0,
+      y: 30,
+      duration: 0.8,
+      stagger: 0.2,
+      ease: "power3.out",
+    });
 
     return () => {
       tl.kill();
@@ -57,19 +54,37 @@ export default function WelcomeScreen({
         if (containerRef.current) {
           containerRef.current.style.display = "none";
         }
-        document.body.style.overflow = "";
       },
     });
   }, [isOpen]);
 
-  // Lock scroll before opening
+  // Robust scroll lock before opening
   useEffect(() => {
-    if (!isOpen) {
+    const lock = () => {
       document.body.style.overflow = "hidden";
-    }
-    return () => {
-      document.body.style.overflow = "";
+      document.body.style.height = "100dvh";
+      document.documentElement.style.overflow = "hidden";
+      document.documentElement.style.height = "100dvh";
     };
+
+    const unlock = () => {
+      document.body.style.overflow = "";
+      document.body.style.height = "";
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.height = "";
+    };
+
+    if (!isOpen) {
+      lock();
+    } else {
+      // Keep locked during the 1.2s slide-up animation
+      const timer = setTimeout(unlock, 1200);
+      return () => {
+        clearTimeout(timer);
+        unlock();
+      };
+    }
+    return unlock;
   }, [isOpen]);
 
   const groomName = eventInfo?.groom_name || "Mempelai Pria";
@@ -78,7 +93,7 @@ export default function WelcomeScreen({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal-dark touch-none select-none overscroll-none"
     >
       {/* Video Background */}
       <video
@@ -89,47 +104,53 @@ export default function WelcomeScreen({
         playsInline
         poster={eventInfo?.hero_photo_url || "/images/hero-fallback.jpg"}
       >
-        <source src="/videos/wedding.mp4" type="video/mp4" />
+        <source
+          src={eventInfo?.welcome_video_url || "/videos/wedding.mp4"}
+          type="video/mp4"
+        />
       </video>
 
       {/* Overlay */}
       <div className="video-overlay" />
 
       {/* Content */}
-      <div ref={contentRef} className="relative z-10 text-center px-6 max-w-lg">
+      <div
+        ref={contentRef}
+        className="relative z-10 text-center px-6 max-w-8xl"
+      >
         {/* Script accent */}
-        <p className="welcome-animate font-script text-gold-light text-4xl tracking-widest mb-4 opacity-0">
+        <p className="welcome-animate font-script text-gold-light text-3xl tracking-widest mb-4">
           The Wedding of
         </p>
 
         {/* Couple names */}
-        <h1 className="welcome-animate font-display text-white text-7xl lg:text-8xl leading-tight mb-2 opacity-0">
+        <h1 className="welcome-animate font-display text-white text-3xl lg:text-6xl leading-tight mb-2">
           {groomName}
         </h1>
 
-        <p className="welcome-animate font-display text-gold text-3xl md:text-4xl mb-2 opacity-0">
+        <p className="welcome-animate font-display text-gold text-xl md:text-3xl mb-2">
           &
         </p>
 
-        <h1 className="welcome-animate font-display text-white text-7xl lg:text-8xl leading-tight mb-8 opacity-0">
+        <h1 className="welcome-animate font-display text-white text-3xl lg:text-6xl leading-tight mb-8">
           {brideName}
         </h1>
 
         {/* Ornamental line */}
-        <div className="welcome-animate ornamental-line mx-auto mb-6 opacity-0">
+        <div className="welcome-animate ornamental-line mx-auto mb-6">
           <span className="w-1.5 h-1.5 rotate-45 bg-gold/60 shrink-0" />
         </div>
 
         {/* Guest greeting */}
-        <p className="welcome-animate font-body text-white/80 text-sm tracking-[0.2em] uppercase mb-2 opacity-0">
+        <p className="welcome-animate font-body text-white/80 text-sm tracking-[0.2em] uppercase mb-2">
           Special Invitation For
         </p>
-        <p className="welcome-animate font-body text-white text-lg md:text-xl font-medium mb-10 opacity-0">
+        <p className="welcome-animate font-body text-white text-lg md:text-xl font-medium mb-10">
           {guestName}
         </p>
 
         {/* Open button */}
-        <div className="welcome-animate opacity-0">
+        <div className="welcome-animate">
           <Button
             variant="outline"
             size="lg"

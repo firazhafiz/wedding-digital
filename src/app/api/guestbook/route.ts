@@ -15,7 +15,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { guestId, guestName, message } = result.data;
+    const { guestId, guestName, message, event_id } = result.data;
     const supabase = await createClient();
 
     // Insert guestbook entry (status: pending for moderation)
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
       .from("guestbook")
       .insert({
         guest_id: guestId,
+        event_id,
         guest_name: guestName,
         message,
         status: "pending",

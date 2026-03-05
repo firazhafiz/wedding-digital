@@ -39,6 +39,10 @@ export interface Gift {
 
 export interface EventInfo {
   id: string;
+  user_id: string | null;
+  event_slug: string;
+
+  // Bride & Groom
   groom_name: string;
   groom_father: string | null;
   groom_mother: string | null;
@@ -49,23 +53,49 @@ export interface EventInfo {
   bride_mother: string | null;
   bride_photo_url: string | null;
   bride_instagram: string | null;
+
+  // Events
   akad_date: string | null;
   akad_location: string | null;
   akad_maps_url: string | null;
   resepsi_date: string | null;
   resepsi_location: string | null;
   resepsi_maps_url: string | null;
+
+  // Appearance / CMS
   hero_photo_url: string | null;
+  welcome_video_url: string | null;
   audio_url: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+  font_display: string | null;
+  photo_style: string | null;
+  story_gallery_bg_url: string | null;
+
+  // Feature Flags
+  show_storyline: boolean;
+  show_countdown: boolean;
+  show_guestbook: boolean;
+  show_gifts: boolean;
+  show_akad: boolean;
+  show_resepsi: boolean;
+
+  // Bank Details
   bank_name: string | null;
   bank_account_number: string | null;
   bank_account_holder: string | null;
+  bank_accounts: any[] | null;
   qris_image_url: string | null;
+
+  // Footer
+  footer_text: string | null;
+
   updated_at: string;
 }
 
 export interface StorylineItem {
   id: string;
+  event_id: string;
   year: string;
   title: string;
   description: string | null;
@@ -76,6 +106,7 @@ export interface StorylineItem {
 
 export interface GalleryPhoto {
   id: string;
+  event_id: string;
   photo_url: string;
   caption: string | null;
   sort_order: number;

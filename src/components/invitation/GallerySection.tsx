@@ -10,7 +10,15 @@ interface GallerySectionProps {
   photos: GalleryPhoto[];
 }
 
-export default function GallerySection({ photos }: GallerySectionProps) {
+interface GallerySectionProps {
+  photos: GalleryPhoto[];
+  isDark?: boolean;
+}
+
+export default function GallerySection({
+  photos,
+  isDark = false,
+}: GallerySectionProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
@@ -72,14 +80,27 @@ export default function GallerySection({ photos }: GallerySectionProps) {
   };
 
   return (
-    <section ref={sectionRef} className="py-8 lg:py-12 px-6 bg-off-white">
+    <section
+      ref={sectionRef}
+      className={`py-12 lg:py-16 px-6 transition-colors duration-500 ${
+        isDark ? "bg-transparent" : "bg-off-white"
+      }`}
+    >
       <div className="max-w-6xl mx-auto">
         {/* Title */}
         <div ref={titleRef} className="text-center mb-12 lg:mb-16">
-          <p className="title-animate font-body text-charcoal-light text-xs tracking-[0.3em] uppercase mb-3">
+          <p
+            className={`title-animate font-body text-xs tracking-[0.3em] uppercase mb-3 ${
+              isDark ? "text-white/80" : "text-charcoal-light"
+            }`}
+          >
             Our Moments
           </p>
-          <h2 className="title-animate font-display text-6xl md:text-7xl text-charcoal-dark">
+          <h2
+            className={`title-animate font-display text-6xl md:text-7xl ${
+              isDark ? "text-white" : "text-charcoal-dark"
+            }`}
+          >
             Galeri
           </h2>
         </div>
@@ -89,7 +110,7 @@ export default function GallerySection({ photos }: GallerySectionProps) {
           {photos.map((photo, index) => (
             <div
               key={photo.id}
-              className="gallery-item break-inside-avoid mb-3 md:mb-4 cursor-pointer group relative overflow-hidden"
+              className="gallery-item break-inside-avoid mb-3 md:mb-4 cursor-pointer group relative overflow-hidden rounded-sm border border-gold/5"
               onClick={() => setSelectedIndex(index)}
             >
               <NextImage
@@ -101,14 +122,20 @@ export default function GallerySection({ photos }: GallerySectionProps) {
               />
 
               {/* Hover overlay */}
-              <div className="absolute inset-0 bg-charcoal-dark/0 group-hover:bg-charcoal-dark/20 transition-all duration-500" />
+              <div
+                className={`absolute inset-0 transition-all duration-500 ${
+                  isDark
+                    ? "bg-black/0 group-hover:bg-black/40"
+                    : "bg-charcoal-dark/0 group-hover:bg-charcoal-dark/20"
+                }`}
+              />
 
               {/* Gold border glow on hover */}
               <div className="absolute inset-0 border border-transparent group-hover:border-gold/30 transition-all duration-500" />
 
               {/* Caption */}
               {photo.caption && (
-                <div className="absolute bottom-0 left-0 right-0 p-3 bg-linear-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                   <p className="font-body text-white text-xs">
                     {photo.caption}
                   </p>

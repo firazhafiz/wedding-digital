@@ -5,6 +5,7 @@ import { z } from "zod";
 // ============================================
 export const rsvpSchema = z.object({
   guestId: z.string().min(1, "ID tamu tidak valid"),
+  event_id: z.string().uuid("ID event tidak valid"),
   status: z.enum(["attending", "not_attending"] as const, {
     error: "Pilih status kehadiran",
   }),
@@ -23,6 +24,7 @@ export type RsvpInput = z.infer<typeof rsvpSchema>;
 // ============================================
 export const guestbookSchema = z.object({
   guestId: z.string().uuid("ID tamu tidak valid"),
+  event_id: z.string().uuid("ID event tidak valid"),
   guestName: z
     .string()
     .min(1, "Nama tidak boleh kosong")
@@ -39,6 +41,7 @@ export type GuestbookInput = z.infer<typeof guestbookSchema>;
 // Gift Validation
 // ============================================
 export const giftSchema = z.object({
+  event_id: z.string().uuid("ID event tidak valid"),
   guestId: z.string().optional(),
   senderName: z
     .string()
@@ -55,6 +58,7 @@ export type GiftInput = z.infer<typeof giftSchema>;
 // Guest Management (Admin)
 // ============================================
 export const createGuestSchema = z.object({
+  event_id: z.string().uuid("ID event tidak valid"),
   name: z
     .string()
     .min(1, "Nama tidak boleh kosong")

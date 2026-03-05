@@ -59,6 +59,7 @@ export default function GiftSection({ guest, eventInfo }: GiftSectionProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          event_id: eventInfo?.id,
           guestId: guest.id,
           senderName,
           bankName: eventInfo?.bank_name,
@@ -126,38 +127,55 @@ export default function GiftSection({ guest, eventInfo }: GiftSectionProps) {
               Transfer Bank
             </p>
 
-            <div className="space-y-3 mb-6">
-              <p className="font-body text-sm text-charcoal-light">
-                {bankName}
-              </p>
-              <p className="font-body text-xl font-semibold text-charcoal-dark tracking-wider">
-                {accountNumber}
-              </p>
-              <p className="font-body text-sm text-charcoal">
-                a.n. {accountHolder}
-              </p>
+            <div className="space-y-6">
+              {eventInfo?.bank_accounts &&
+              eventInfo.bank_accounts.length > 0 ? (
+                eventInfo.bank_accounts.map((acc: any, i: number) => (
+                  <div
+                    key={i}
+                    className="space-y-3 pb-4 border-b border-gold/5 last:border-0 last:pb-0"
+                  >
+                    <p className="font-body text-xs text-gold uppercase tracking-tighter">
+                      {acc.bank}
+                    </p>
+                    <p className="font-body text-xl font-semibold text-charcoal-dark tracking-wider">
+                      {acc.account}
+                    </p>
+                    <p className="font-body text-xs text-charcoal/60">
+                      a.n. {acc.holder}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCopy(acc.account, "Nomor rekening")}
+                      className="text-[10px] h-8 px-3"
+                    >
+                      Salin Rekening
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div className="space-y-3">
+                  <p className="font-body text-sm text-charcoal-light">
+                    {bankName}
+                  </p>
+                  <p className="font-body text-xl font-semibold text-charcoal-dark tracking-wider">
+                    {accountNumber}
+                  </p>
+                  <p className="font-body text-sm text-charcoal">
+                    a.n. {accountHolder}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopy(accountNumber, "Nomor rekening")}
+                    className="tracking-widest"
+                  >
+                    Salin Rekening
+                  </Button>
+                </div>
+              )}
             </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleCopy(accountNumber, "Nomor rekening")}
-              className="tracking-widest"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="mr-1.5"
-              >
-                <rect x="8" y="8" width="12" height="12" rx="2" />
-                <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
-              </svg>
-              Salin Rekening
-            </Button>
           </div>
 
           {/* QRIS */}

@@ -15,7 +15,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const { guestId, senderName, bankName, amount, notes } = result.data;
+    const { guestId, senderName, bankName, amount, notes, event_id } =
+      result.data;
     const supabase = await createClient();
 
     // Insert gift record
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
       .from("gifts")
       .insert({
         guest_id: guestId || null,
+        event_id,
         sender_name: senderName,
         bank_name: bankName || null,
         amount: amount || null,

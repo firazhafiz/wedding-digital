@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { getActiveEventId } from "@/lib/admin/context";
 import type { Guest } from "@/types";
 import { generateSlug, generateQrToken } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
@@ -18,12 +19,28 @@ export default function GuestManagementPage() {
   const [newName, setNewName] = useState("");
   const [newMaxPax, setNewMaxPax] = useState(2);
   const [addLoading, setAddLoading] = useState(false);
+  const [eventSlug, setEventSlug] = useState("");
 
   const fetchGuests = useCallback(async () => {
+    const eventId = getActiveEventId();
+    if (!eventId) return;
+
     const supabase = createClient();
+
+    // Fetch event slug if not already set
+    if (!eventSlug) {
+      const { data: eventData } = await supabase
+        .from("event_info")
+        .select("event_slug")
+        .eq("id", eventId)
+        .single();
+      if (eventData) setEventSlug(eventData.event_slug);
+    }
+
     const { data, error } = await supabase
       .from("guests")
       .select("*")
+      .eq("event_id", eventId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -44,10 +61,15 @@ export default function GuestManagementPage() {
 
     setAddLoading(true);
     try {
+      const eventId = getActiveEventId();
       const res = await fetch("/api/guests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName.trim(), max_pax: newMaxPax }),
+        body: JSON.stringify({
+          name: newName.trim(),
+          max_pax: newMaxPax,
+          event_id: eventId,
+        }),
       });
 
       const data = await res.json();
@@ -82,6 +104,7 @@ export default function GuestManagementPage() {
           return;
         }
 
+        const eventId = getActiveEventId();
         const guestsToInsert = rows
           .filter((row) => row.name?.trim())
           .map((row) => ({
@@ -89,6 +112,7 @@ export default function GuestManagementPage() {
             slug: generateSlug(row.name.trim()),
             max_pax: row.max_pax ? parseInt(row.max_pax) || 2 : 2,
             qr_token: generateQrToken(),
+            event_id: eventId,
           }));
 
         const supabase = createClient();
@@ -124,7 +148,7 @@ export default function GuestManagementPage() {
   };
 
   const handleCopyLink = (slug: string) => {
-    const link = `${SITE_CONFIG.baseUrl}/to/${slug}`;
+    const link = `${SITE_CONFIG.baseUrl}/${eventSlug}/to/${slug}`;
     navigator.clipboard.writeText(link);
     toast.success("Link disalin");
   };

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { getActiveEventId } from "@/lib/admin/context";
 import type { Guest } from "@/types";
 import Badge from "@/components/ui/Badge";
 import StatsCard from "@/components/admin/StatsCard";
@@ -13,10 +14,14 @@ export default function CheckinTrackerPage() {
   const [search, setSearch] = useState("");
 
   const fetchGuests = useCallback(async () => {
+    const eventId = getActiveEventId();
+    if (!eventId) return;
+
     const supabase = createClient();
     const { data, error } = await supabase
       .from("guests")
       .select("*")
+      .eq("event_id", eventId)
       .eq("rsvp_status", "attending")
       .order("name", { ascending: true });
 

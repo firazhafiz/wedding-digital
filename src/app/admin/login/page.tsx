@@ -34,7 +34,7 @@ export default function AdminLoginPage() {
       }
 
       toast.success("Login berhasil");
-      router.push("/admin");
+      router.push("/admin/events");
       router.refresh();
     } catch {
       toast.error("Terjadi kesalahan");
