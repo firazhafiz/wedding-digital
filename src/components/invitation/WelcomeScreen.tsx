@@ -5,6 +5,7 @@ import { gsap } from "@/lib/gsap";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import type { EventInfo } from "@/types";
 import Button from "@/components/ui/Button";
+import NextImage from "next/image";
 
 interface WelcomeScreenProps {
   guestName: string;
@@ -126,14 +127,26 @@ export default function WelcomeScreen({
       ref={containerRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal-dark touch-none select-none overscroll-none"
     >
-      {/* Video Background */}
+      {/* Optimized HD Background Layer (Instant Render) */}
+      <div className="absolute inset-0 z-0 bg-charcoal-dark overflow-hidden">
+        <NextImage
+          src={eventInfo?.hero_photo_url || "/images/hero-fallback.jpg"}
+          alt="Welcome background"
+          fill
+          priority
+          quality={85}
+          className="object-cover opacity-80"
+          sizes="100vw"
+        />
+      </div>
+
+      {/* Video Background (Loads asynchronously) */}
       <video
-        className="video-bg"
+        className="video-bg relative z-10 mix-blend-screen"
         autoPlay
         muted
         loop
         playsInline
-        poster={eventInfo?.hero_photo_url || "/images/hero-fallback.jpg"}
       >
         <source
           src={eventInfo?.welcome_video_url || "/videos/wedding.mp4"}

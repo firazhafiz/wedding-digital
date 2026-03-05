@@ -19,8 +19,8 @@ export default function LandingNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const bgRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const footerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -37,33 +37,26 @@ export default function LandingNavbar() {
 
       // Reset positions
       gsap.set(menuRef.current, { display: "block" });
-      gsap.set(bgRef.current, { scaleY: 0, transformOrigin: "top" });
-      gsap.set(itemsRef.current, { y: 50, opacity: 0 });
-      gsap.set(footerRef.current, { opacity: 0 });
+      gsap.set(bgRef.current, { opacity: 0 });
+      gsap.set(contentRef.current, { opacity: 0 });
+      gsap.set(itemsRef.current, { y: 20, opacity: 0 });
 
       tl.to(bgRef.current, {
-        scaleY: 1,
-        duration: 0.8,
-        ease: "expo.inOut",
+        opacity: 1,
+        duration: 0.4,
+        ease: "power2.out",
       })
+        .to(contentRef.current, { opacity: 1, duration: 0.3 }, "-=0.2")
         .to(
           itemsRef.current.filter(Boolean),
           {
             y: 0,
             opacity: 1,
-            duration: 0.6,
-            stagger: 0.1,
-            ease: "power4.out",
+            duration: 0.4,
+            stagger: 0.05,
+            ease: "power3.out",
           },
-          "-=0.4",
-        )
-        .to(
-          footerRef.current,
-          {
-            opacity: 1,
-            duration: 0.5,
-          },
-          "-=0.3",
+          "-=0.2",
         );
     } else {
       if (menuRef.current) {
@@ -74,21 +67,18 @@ export default function LandingNavbar() {
           },
         });
 
-        tl.to(itemsRef.current.filter(Boolean).reverse(), {
-          y: -20,
+        tl.to(contentRef.current, {
           opacity: 0,
           duration: 0.3,
-          stagger: 0.05,
           ease: "power2.in",
         }).to(
           bgRef.current,
           {
-            scaleY: 0,
-            duration: 0.6,
-            ease: "expo.inOut",
-            transformOrigin: "bottom",
+            opacity: 0,
+            duration: 0.4,
+            ease: "power2.inOut",
           },
-          "-=0.2",
+          "-=0.1",
         );
       }
     }
@@ -188,7 +178,11 @@ export default function LandingNavbar() {
         {/* Animated Background */}
         <div ref={bgRef} className="absolute inset-0 bg-charcoal-dark" />
 
-        <div className="relative h-full flex flex-col px-8 pt-32 pb-12 overflow-y-auto">
+        {/* Unified Content Wrapper for Animation */}
+        <div
+          ref={contentRef}
+          className="relative h-full flex flex-col px-8 pt-32 pb-12 overflow-y-auto"
+        >
           <div className="flex-1 flex flex-col">
             <p className="font-body text-[10px] text-gold/70 uppercase tracking-[0.5em] mb-12">
               Menu Navigasi
@@ -235,10 +229,7 @@ export default function LandingNavbar() {
           </div>
 
           {/* Footer inside menu */}
-          <div
-            ref={footerRef}
-            className="mt-12 pt-8 border-t border-white/5 flex flex-col gap-4"
-          >
+          <div className="mt-12 pt-8 border-t border-white/5 flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <p className="font-body text-[10px] text-white/40 uppercase tracking-widest">
                 akadigital premium invitation

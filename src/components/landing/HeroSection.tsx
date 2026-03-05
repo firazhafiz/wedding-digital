@@ -1,15 +1,21 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden md:pt-0">
-      {/* Background Image — ganti file /public/images/hero-landing.jpg */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: "url('/images/hero.jpg')",
-        }}
-      />
+      {/* Background Image Optimized */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/images/hero.jpg"
+          alt="AkaDigital Premium Wedding Invitation"
+          fill
+          priority
+          quality={90}
+          className="object-cover"
+          sizes="100vw"
+        />
+      </div>
 
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-charcoal-dark/70" />

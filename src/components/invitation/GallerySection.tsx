@@ -119,6 +119,7 @@ export default function GallerySection({
                 width={1920}
                 height={1080}
                 className="w-full h-auto object-cover transition-all duration-700 group-hover:scale-105"
+                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
               />
 
               {/* Hover overlay */}
