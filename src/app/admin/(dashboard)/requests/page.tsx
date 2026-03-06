@@ -77,7 +77,7 @@ export default function AdminRequestsPage() {
   const filtered = requests;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -117,13 +117,13 @@ export default function AdminRequestsPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-4 w-full">
           {filtered.map((r) => (
             <div
               key={r.id}
               className="bg-white rounded-lg border border-gray-100 p-5 hover:shadow-sm transition-shadow"
             >
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
                 {/* Info */}
                 <div className="flex-1 min-w-0 space-y-2">
                   <div className="flex items-center gap-3 flex-wrap">
@@ -140,31 +140,51 @@ export default function AdminRequestsPage() {
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-x-6 gap-y-1">
-                    <p className="font-body text-xs text-charcoal-light">
-                      <span className="text-charcoal/60">Pemesan:</span>{" "}
-                      {r.client_name}
+                  <div className="mt-4 flex flex-col gap-2 w-full min-w-0">
+                    <p className="font-body text-xs text-charcoal-light flex items-start gap-2 w-full">
+                      <span className="text-charcoal/60 w-[60px] shrink-0">
+                        Pemesan:
+                      </span>
+                      <span className="flex-1 min-w-0 break-all font-medium">
+                        {r.client_name}
+                      </span>
                     </p>
-                    <p className="font-body text-xs text-charcoal-light">
-                      <span className="text-charcoal/60">WA:</span>{" "}
-                      {r.client_phone}
+                    <p className="font-body text-xs text-charcoal-light flex items-start gap-2 w-full">
+                      <span className="text-charcoal/60 w-[60px] shrink-0">
+                        WA:
+                      </span>
+                      <span className="flex-1 min-w-0 break-all">
+                        {r.client_phone}
+                      </span>
                     </p>
                     {r.client_email && (
-                      <p className="font-body text-xs text-charcoal-light">
-                        <span className="text-charcoal/60">Email:</span>{" "}
-                        {r.client_email}
+                      <p className="font-body text-xs text-charcoal-light flex items-start gap-2 w-full">
+                        <span className="text-charcoal/60 w-[60px] shrink-0">
+                          Email:
+                        </span>
+                        <span className="flex-1 min-w-0 break-all">
+                          {r.client_email}
+                        </span>
                       </p>
                     )}
                     {r.event_date && (
-                      <p className="font-body text-xs text-charcoal-light">
-                        <span className="text-charcoal/60">Tanggal:</span>{" "}
-                        {r.event_date}
+                      <p className="font-body text-xs text-charcoal-light flex items-start gap-2 w-full">
+                        <span className="text-charcoal/60 w-[60px] shrink-0">
+                          Tanggal:
+                        </span>
+                        <span className="flex-1 min-w-0 break-all">
+                          {r.event_date}
+                        </span>
                       </p>
                     )}
                     {r.event_location && (
-                      <p className="font-body text-xs text-charcoal-light">
-                        <span className="text-charcoal/60">Lokasi:</span>{" "}
-                        {r.event_location}
+                      <p className="font-body text-xs text-charcoal-light flex items-start gap-2 w-full">
+                        <span className="text-charcoal/60 w-[60px] shrink-0">
+                          Lokasi:
+                        </span>
+                        <span className="flex-1 min-w-0 break-all">
+                          {r.event_location}
+                        </span>
                       </p>
                     )}
                   </div>

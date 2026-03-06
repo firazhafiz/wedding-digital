@@ -337,7 +337,7 @@ export default function AdminShell({
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen lg:pl-64">
+      <div className="flex-1 flex flex-col min-h-screen lg:pl-64 overflow-hidden min-w-0">
         {/* Topbar */}
         <header className="sticky top-0 z-20 bg-white border-b border-gray-200 px-6 py-3 md:px-0 md:py-0 flex items-center justify-between lg:justify-end">
           {/* Hamburger (mobile) */}
@@ -362,7 +362,7 @@ export default function AdminShell({
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );
