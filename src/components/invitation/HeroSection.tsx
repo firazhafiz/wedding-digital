@@ -64,8 +64,18 @@ export default function HeroSection({
         muted
         loop
         playsInline
+        preload="auto"
         poster={eventInfo?.hero_photo_url || "/images/hero-fallback.jpg"}
       >
+        {/* Prioritize WebM format for modern browsers */}
+        <source
+          src={
+            eventInfo?.welcome_video_url?.replace(".mp4", ".webm") ||
+            "/videos/wedding.webm"
+          }
+          type="video/webm"
+        />
+        {/* Fallback to MP4 for iOS/Safari */}
         <source
           src={eventInfo?.welcome_video_url || "/videos/wedding.mp4"}
           type="video/mp4"
@@ -81,7 +91,7 @@ export default function HeroSection({
           We are getting married
         </p>
 
-        <h2 className="hero-animate font-script text-white text-4xl md:text-5xl  leading-tight mb-3">
+        <h2 className="hero-animate font-script text-white text-5xl md:text-7xl lg:text-8xl leading-tight mb-3">
           {groomName}
         </h2>
 
@@ -91,7 +101,7 @@ export default function HeroSection({
           <span className="w-16 h-px bg-linear-to-l from-transparent to-gold/60" />
         </div>
 
-        <h2 className="hero-animate font-script text-white text-4xl md:text-5xl  leading-tight mb-8">
+        <h2 className="hero-animate font-script text-white text-5xl md:text-7xl lg:text-8xl leading-tight mb-8">
           {brideName}
         </h2>
 

@@ -148,14 +148,24 @@ export default function WelcomeScreen({
         />
       </div>
 
-      {/* Video Background (Loads asynchronously) */}
+      {/* Video Background */}
       <video
         className="video-bg relative z-10 mix-blend-screen"
         autoPlay
         muted
         loop
         playsInline
+        preload="auto"
       >
+        {/* Prioritize WebM format for modern browsers */}
+        <source
+          src={
+            eventInfo?.welcome_video_url?.replace(".mp4", ".webm") ||
+            "/videos/wedding.webm"
+          }
+          type="video/webm"
+        />
+        {/* Fallback to MP4 for iOS/Safari */}
         <source
           src={eventInfo?.welcome_video_url || "/videos/wedding.mp4"}
           type="video/mp4"
