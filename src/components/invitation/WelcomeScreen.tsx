@@ -122,6 +122,14 @@ export default function WelcomeScreen({
   const groomName = eventInfo?.groom_name || "Mempelai Pria";
   const brideName = eventInfo?.bride_name || "Mempelai Wanita";
 
+  const cleanName = (name: string) => {
+    if (!name) return "";
+    return name
+      .replace(/[\u200B-\u200D\uFEFF]/g, "") // Hapus Zero Width Spaces
+      .replace(/\s+/g, " ") // Normalisasi spasi berlebih menjadi spasi biasa
+      .trim();
+  };
+
   return (
     <div
       ref={containerRef}
@@ -169,7 +177,7 @@ export default function WelcomeScreen({
 
         {/* Couple names (Clean invisible characters that break iOS fonts) */}
         <h1 className="welcome-animate font-display text-white text-3xl lg:text-6xl leading-tight mb-2">
-          {groomName?.replace(/[^\w\s\-.,'"&]/gi, "")}
+          {cleanName(groomName)}
         </h1>
 
         <p className="welcome-animate font-display text-gold text-xl md:text-3xl mb-2">
@@ -177,7 +185,7 @@ export default function WelcomeScreen({
         </p>
 
         <h1 className="welcome-animate font-display text-white text-3xl lg:text-6xl leading-tight mb-8">
-          {brideName?.replace(/[^\w\s\-.,'"&]/gi, "")}
+          {cleanName(brideName)}
         </h1>
 
         {/* Ornamental line */}
