@@ -167,9 +167,9 @@ export default function WelcomeScreen({
           The Wedding of
         </p>
 
-        {/* Couple names */}
+        {/* Couple names (Clean invisible characters that break iOS fonts) */}
         <h1 className="welcome-animate font-display text-white text-3xl lg:text-6xl leading-tight mb-2">
-          {groomName}
+          {groomName?.replace(/[\uFFFD\u200B-\u200D\uFEFF]/g, "")}
         </h1>
 
         <p className="welcome-animate font-display text-gold text-xl md:text-3xl mb-2">
@@ -177,7 +177,7 @@ export default function WelcomeScreen({
         </p>
 
         <h1 className="welcome-animate font-display text-white text-3xl lg:text-6xl leading-tight mb-8">
-          {brideName}
+          {brideName?.replace(/[\uFFFD\u200B-\u200D\uFEFF]/g, "")}
         </h1>
 
         {/* Ornamental line */}

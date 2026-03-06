@@ -88,15 +88,15 @@ export default function AdminRequestsPage() {
         </div>
 
         {/* Filter */}
-        <div className="flex items-center gap-2">
-          {["all", "pending", "contacted", "confirmed", "rejected"].map((f) => (
+        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 overflow-x-auto hide-scrollbar w-full sm:w-fit sm:flex-wrap">
+          {["all", ...Object.keys(statusLabels)].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-md text-xs font-body font-medium transition-colors cursor-pointer ${
+              className={`px-4 py-1.5 rounded-md text-sm font-body font-medium transition-all duration-200 whitespace-nowrap shrink-0 ${
                 filter === f
-                  ? "bg-charcoal-dark text-white"
-                  : "bg-gray-100 text-charcoal-light hover:bg-gray-200"
+                  ? "bg-white text-charcoal-dark shadow-sm"
+                  : "text-charcoal-light hover:text-charcoal"
               }`}
             >
               {f === "all" ? "Semua" : statusLabels[f]?.label || f}

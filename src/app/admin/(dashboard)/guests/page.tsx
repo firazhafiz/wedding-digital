@@ -180,7 +180,13 @@ export default function GuestManagementPage() {
   };
 
   const handleCopyLink = (slug: string) => {
-    const link = `${SITE_CONFIG.baseUrl}/${eventSlug}/to/${slug}`;
+    // If accessing from localhost, force the production URL for copied links. Otherwise use actual domain.
+    const baseUrl =
+      typeof window !== "undefined" && window.location.hostname !== "localhost"
+        ? window.location.origin
+        : "https://akadigital.vercel.app";
+
+    const link = `${baseUrl}/${eventSlug}/to/${slug}`;
     navigator.clipboard.writeText(link);
     toast.success("Link disalin");
   };

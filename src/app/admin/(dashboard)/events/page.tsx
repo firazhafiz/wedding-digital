@@ -175,35 +175,28 @@ export default function AdminEventsPage() {
               </div>
 
               <div className="pt-4 border-t border-gray-50 flex gap-2">
-                <Link
-                  href={`/${event.event_slug}/to/demo`}
-                  target="_blank"
-                  className="flex-1"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-[10px]"
+                  onClick={() =>
+                    window.open(`/${event.event_slug}/to/demo`, "_blank")
+                  }
                 >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-[10px]"
-                  >
-                    Lihat Live
-                  </Button>
-                </Link>
-                <button
+                  Lihat Live
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="flex-1 text-[10px]"
                   onClick={() => {
                     setActiveEventId(event.id);
                     router.push("/admin");
                     router.refresh();
                   }}
-                  className="flex-1"
                 >
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="w-full text-[10px]"
-                  >
-                    Pilih & Kelola
-                  </Button>
-                </button>
+                  Pilih & Kelola
+                </Button>
               </div>
             </div>
           </div>
@@ -218,8 +211,8 @@ export default function AdminEventsPage() {
       <style jsx>{`
         .cms-input {
           @apply px-4 py-3 border border-gray-200 rounded-lg text-sm font-body text-charcoal-dark 
-            bg-white shadow-sm transition-all duration-200 outline-none
-            focus:border-gold/50 focus:ring-4 focus:ring-gold/5;
+              bg-white shadow-sm transition-all duration-200 outline-none
+              focus:border-gold/50 focus:ring-4 focus:ring-gold/5;
         }
         .animate-fade-in {
           animation: fadeIn 0.4s ease-out;

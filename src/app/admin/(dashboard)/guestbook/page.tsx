@@ -65,6 +65,20 @@ export default function GuestbookModerationPage() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Yakin ingin menghapus ucapan ini secara permanen?")) return;
+
+    const supabase = createClient();
+    const { error } = await supabase.from("guestbook").delete().eq("id", id);
+
+    if (error) {
+      toast.error("Gagal menghapus ucapan");
+    } else {
+      toast.success("Ucapan berhasil dihapus");
+      setEntries(entries.filter((e) => e.id !== id));
+    }
+  };
+
   const filterTabs = [
     { key: "pending" as const, label: "Pending" },
     { key: "approved" as const, label: "Approved" },
@@ -85,12 +99,12 @@ export default function GuestbookModerationPage() {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 overflow-x-auto hide-scrollbar sm:flex-wrap">
         {filterTabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setFilter(tab.key)}
-            className={`px-4 py-1.5 rounded-md text-xs font-body font-medium transition-all duration-200 ${
+            className={`px-4 py-1.5 rounded-md text-xs font-body font-medium transition-all duration-200 whitespace-nowrap shrink-0 ${
               filter === tab.key
                 ? "bg-white text-charcoal-dark shadow-sm"
                 : "text-charcoal-light hover:text-charcoal"
@@ -120,9 +134,9 @@ export default function GuestbookModerationPage() {
               key={entry.id}
               className="bg-white rounded-lg border border-gray-100 p-5"
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center flex-wrap sm:flex-nowrap gap-2 mb-2">
                     <div className="w-7 h-7 rounded-full bg-gold/10 flex items-center justify-center shrink-0">
                       <span className="font-body text-[10px] font-semibold text-gold">
                         {entry.guest_name.charAt(0).toUpperCase()}
@@ -138,7 +152,10 @@ export default function GuestbookModerationPage() {
                     {entry.message}
                   </p>
 
-                  <p className="font-body text-[10px] text-charcoal-light/50 mt-2 pl-9">
+                  <p
+                    className="font-body text-[10px] text-charcoal-light/50 mt-2 pl-9"
+                    suppressHydrationWarning
+                  >
                     {new Date(entry.created_at).toLocaleDateString("id-ID", {
                       day: "numeric",
                       month: "short",
@@ -150,26 +167,50 @@ export default function GuestbookModerationPage() {
                 </div>
 
                 {/* Actions */}
-                {entry.status === "pending" && (
-                  <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 border-t border-gray-100 pt-3 sm:border-0 sm:pt-0 mt-2 sm:mt-0">
+                  {entry.status === "pending" && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleModerate(entry.id, "approved")}
+                        className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 font-body"
+                      >
+                        ✓ Setuju
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleModerate(entry.id, "rejected")}
+                        className="text-red-500 hover:bg-red-50 hover:text-red-600 font-body"
+                      >
+                        ✕ Tolak
+                      </Button>
+                    </>
+                  )}
+                  {entry.status === "approved" && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleModerate(entry.id, "approved")}
-                      className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                      onClick={() => handleDelete(entry.id)}
+                      className="text-red-500 hover:bg-red-50 hover:text-red-600 font-body"
                     >
-                      ✓ Setuju
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="mr-1"
+                      >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                      Hapus
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleModerate(entry.id, "rejected")}
-                      className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                    >
-                      ✕ Tolak
-                    </Button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           ))
