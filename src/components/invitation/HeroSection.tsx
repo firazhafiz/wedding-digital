@@ -52,6 +52,28 @@ export default function HeroSection({
     ? formatDate(eventInfo.akad_date)
     : "Tanggal Pernikahan";
 
+  const cleanName = (name: string) => {
+    if (!name) return "";
+    return name
+      .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const isVideoUrl = (url: string | null | undefined) => {
+    if (!url) return false;
+    return (
+      url.toLowerCase().endsWith(".mp4") ||
+      url.toLowerCase().endsWith(".webm") ||
+      url.includes("/videos/")
+    );
+  };
+
+  const validHeroPhoto =
+    eventInfo?.hero_photo_url && !isVideoUrl(eventInfo.hero_photo_url)
+      ? eventInfo.hero_photo_url
+      : "/images/hero-fallback.jpg";
+
   return (
     <section
       ref={sectionRef}
@@ -65,7 +87,7 @@ export default function HeroSection({
         loop
         playsInline
         preload="auto"
-        poster={eventInfo?.hero_photo_url || "/images/hero-fallback.jpg"}
+        poster={validHeroPhoto}
       >
         {/* Prioritize WebM format for modern browsers */}
         <source
@@ -92,17 +114,17 @@ export default function HeroSection({
         </p>
 
         <h2 className="hero-animate font-script text-white text-5xl md:text-7xl lg:text-8xl leading-tight mb-3">
-          {groomName}
+          {cleanName(groomName)}
         </h2>
 
         <div className="hero-animate flex items-center justify-center gap-4 mb-3">
           <span className="w-16 h-px bg-linear-to-r from-transparent to-gold/60" />
-          <span className="font-display text-gold text-3xl">&</span>
+          <span className="font-display text-gold text-3xl">&amp;</span>
           <span className="w-16 h-px bg-linear-to-l from-transparent to-gold/60" />
         </div>
 
         <h2 className="hero-animate font-script text-white text-5xl md:text-7xl lg:text-8xl leading-tight mb-8">
-          {brideName}
+          {cleanName(brideName)}
         </h2>
 
         <div className="hero-animate">

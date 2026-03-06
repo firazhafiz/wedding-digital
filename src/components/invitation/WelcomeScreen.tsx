@@ -125,10 +125,24 @@ export default function WelcomeScreen({
   const cleanName = (name: string) => {
     if (!name) return "";
     return name
-      .replace(/[\u200B-\u200D\uFEFF]/g, "") // Hapus Zero Width Spaces
+      .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, "") // Hapus semua control characters (\r, \n) dan Zero Width Spaces
       .replace(/\s+/g, " ") // Normalisasi spasi berlebih menjadi spasi biasa
       .trim();
   };
+
+  const isVideoUrl = (url: string | null | undefined) => {
+    if (!url) return false;
+    return (
+      url.toLowerCase().endsWith(".mp4") ||
+      url.toLowerCase().endsWith(".webm") ||
+      url.includes("/videos/")
+    );
+  };
+
+  const validHeroPhoto =
+    eventInfo?.hero_photo_url && !isVideoUrl(eventInfo.hero_photo_url)
+      ? eventInfo.hero_photo_url
+      : "/images/hero-fallback.jpg";
 
   return (
     <div
@@ -138,7 +152,7 @@ export default function WelcomeScreen({
       {/* Optimized HD Background Layer (Instant Render) */}
       <div className="absolute inset-0 z-0 bg-charcoal-dark overflow-hidden">
         <NextImage
-          src={eventInfo?.hero_photo_url || "/images/hero-fallback.jpg"}
+          src={validHeroPhoto}
           alt="Welcome background"
           fill
           priority
@@ -208,7 +222,7 @@ export default function WelcomeScreen({
           Special Invitation For
         </p>
         <p className="welcome-animate font-body text-white text-lg md:text-xl font-medium mb-10">
-          {guestName}
+          {cleanName(guestName)}
         </p>
 
         {/* Open button */}

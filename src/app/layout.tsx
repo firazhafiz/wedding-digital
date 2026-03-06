@@ -39,6 +39,7 @@ export const metadata: Metadata = {
     email: false,
     address: false,
     telephone: false,
+    date: false,
   },
   openGraph: {
     title: "AkaDigital - Premium Digital Wedding Invitation",
