@@ -77,6 +77,12 @@ export default function ClientScannerComponent() {
     // Ignore frequent errors when no code is visible.
   };
 
+  // Stable references for handlers to avoid re-initializing scanner
+  const onScanSuccessRef = useRef(handleScanSuccess);
+  onScanSuccessRef.current = handleScanSuccess;
+  const onScanErrorRef = useRef(handleScanError);
+  onScanErrorRef.current = handleScanError;
+
   useEffect(() => {
     if (!eventId) {
       toast.error("Tidak ada event aktif");
@@ -100,12 +106,16 @@ export default function ClientScannerComponent() {
 
     scannerRef.current = html5QrcodeScanner;
 
-    html5QrcodeScanner.render(handleScanSuccess, handleScanError);
+    // Use stable wrappers that call the latest ref
+    html5QrcodeScanner.render(
+      (text) => onScanSuccessRef.current(text),
+      (err) => onScanErrorRef.current(err),
+    );
 
     return () => {
       html5QrcodeScanner.clear().catch(console.error);
     };
-  }, [handleScanSuccess, eventId, router]);
+  }, [eventId, router]); // handleScanSuccess is no longer a dependency
 
   const playBeep = (frequency: number, duration: number) => {
     try {
