@@ -15,6 +15,7 @@ export default function AdminEventsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newSlug, setNewSlug] = useState("");
   const [newTitle, setNewTitle] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -67,6 +68,43 @@ export default function AdminEventsPage() {
       router.push("/admin/settings");
       router.refresh();
     }
+  };
+
+  const handleDelete = async (eventId: string, eventName: string) => {
+    toast(`Hapus event "${eventName}"?`, {
+      description:
+        "Semua data tamu, buku tamu, dll. akan ikut terhapus permanen.",
+      action: {
+        label: "Hapus",
+        onClick: async () => {
+          setDeletingId(eventId);
+
+          // Delete related data first (cascade)
+          await supabase.from("guests").delete().eq("event_id", eventId);
+          await supabase
+            .from("guestbook_entries")
+            .delete()
+            .eq("event_id", eventId);
+
+          const { error } = await supabase
+            .from("event_info")
+            .delete()
+            .eq("id", eventId);
+
+          if (error) {
+            toast.error("Gagal menghapus event: " + error.message);
+          } else {
+            toast.success("Event berhasil dihapus!");
+            fetchEvents();
+          }
+          setDeletingId(null);
+        },
+      },
+      cancel: {
+        label: "Batal",
+        onClick: () => {},
+      },
+    });
   };
 
   if (loading)
@@ -146,8 +184,53 @@ export default function AdminEventsPage() {
         {events.map((event) => (
           <div
             key={event.id}
-            className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group overflow-hidden"
+            className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group overflow-hidden relative"
           >
+            {/* Delete button */}
+            <button
+              onClick={() =>
+                handleDelete(
+                  event.id,
+                  `${event.groom_name} & ${event.bride_name}`,
+                )
+              }
+              disabled={deletingId === event.id}
+              className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-white/80 text-charcoal-light/40 hover:text-red-500 hover:bg-red-50 transition-all"
+              title="Hapus event"
+            >
+              {deletingId === event.id ? (
+                <svg
+                  className="w-4 h-4 animate-spin"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    strokeDasharray="32"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
+                  <polyline points="3,6 5,6 21,6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              )}
+            </button>
+
             <div className="h-24 bg-gold/5 flex items-center justify-center border-b border-gray-50">
               <span className="font-display text-lg text-gold italic">
                 {event.groom_name.split(" ")[0]} &{" "}

@@ -166,17 +166,25 @@ export default function GuestManagementPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Yakin hapus tamu ini?")) return;
-
-    const supabase = createClient();
-    const { error } = await supabase.from("guests").delete().eq("id", id);
-
-    if (error) {
-      toast.error("Gagal menghapus tamu");
-    } else {
-      toast.success("Tamu dihapus");
-      setGuests(guests.filter((g) => g.id !== id));
-    }
+    toast("Yakin ingin menghapus tamu ini?", {
+      action: {
+        label: "Hapus",
+        onClick: async () => {
+          const supabase = createClient();
+          const { error } = await supabase.from("guests").delete().eq("id", id);
+          if (error) {
+            toast.error("Gagal menghapus tamu");
+          } else {
+            toast.success("Tamu dihapus");
+            setGuests((prev) => prev.filter((g) => g.id !== id));
+          }
+        },
+      },
+      cancel: {
+        label: "Batal",
+        onClick: () => {},
+      },
+    });
   };
 
   const handleCopyLink = (slug: string) => {

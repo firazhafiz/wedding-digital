@@ -66,17 +66,28 @@ export default function GuestbookModerationPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Yakin ingin menghapus ucapan ini secara permanen?")) return;
-
-    const supabase = createClient();
-    const { error } = await supabase.from("guestbook").delete().eq("id", id);
-
-    if (error) {
-      toast.error("Gagal menghapus ucapan");
-    } else {
-      toast.success("Ucapan berhasil dihapus");
-      setEntries(entries.filter((e) => e.id !== id));
-    }
+    toast("Yakin ingin menghapus ucapan ini?", {
+      action: {
+        label: "Hapus",
+        onClick: async () => {
+          const supabase = createClient();
+          const { error } = await supabase
+            .from("guestbook")
+            .delete()
+            .eq("id", id);
+          if (error) {
+            toast.error("Gagal menghapus ucapan");
+          } else {
+            toast.success("Ucapan berhasil dihapus");
+            setEntries((prev) => prev.filter((e) => e.id !== id));
+          }
+        },
+      },
+      cancel: {
+        label: "Batal",
+        onClick: () => {},
+      },
+    });
   };
 
   const filterTabs = [
