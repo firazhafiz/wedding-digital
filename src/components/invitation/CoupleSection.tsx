@@ -59,7 +59,7 @@ function CoupleCard({
 
       {/* Name */}
       <h3 className="font-display text-3xl md:text-4xl text-charcoal-dark mb-4">
-        {name}
+        {name.replace(/[^\w\s\-.,'"&]/gi, "")}
       </h3>
 
       {/* Parents */}
