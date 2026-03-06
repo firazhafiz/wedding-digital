@@ -153,6 +153,7 @@ ALTER TABLE public.storyline ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gifts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.client_users ENABLE ROW LEVEL SECURITY;
 
 -- 2a. Public SELECT Access (For the Invitation Page)
 -- Allow anyone to view event and guest details by slug
@@ -191,7 +192,10 @@ CREATE POLICY "Allow authenticated manage all gifts" ON public.gifts
 CREATE POLICY "Allow public insert on order_requests" ON public.order_requests FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public select on order_requests" ON public.order_requests FOR SELECT USING (true);
 CREATE POLICY "Allow authenticated manage all order_requests" ON public.order_requests
-  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+  FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated manage all client_users" ON public.client_users
+FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
 
 -- ==========================================
 -- 3. Initial Data (Sync with default event)

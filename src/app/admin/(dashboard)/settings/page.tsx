@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { getActiveEventId } from "@/lib/admin/context";
 import Button from "@/components/ui/Button";
+import ClientAccessManager from "@/components/admin/ClientAccessManager";
 import type { EventInfo, StorylineItem, GalleryPhoto } from "@/types";
 
 export default function AdminSettingsPage() {
@@ -1015,6 +1016,13 @@ export default function AdminSettingsPage() {
           </Button>
         </div>
       </form>
+
+      {/* Client Access Management */}
+      {eventData.id && (
+        <div className="mt-10">
+          <ClientAccessManager eventId={eventData.id} />
+        </div>
+      )}
 
       <style jsx>{`
         .cms-label {

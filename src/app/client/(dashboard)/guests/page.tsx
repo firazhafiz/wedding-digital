@@ -1,0 +1,505 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
+import { useClientEventId } from "@/components/client/ClientEventContext";
+import type { Guest } from "@/types";
+import { generateSlug, generateQrToken } from "@/lib/utils";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import Papa from "papaparse";
+import * as XLSX from "xlsx";
+
+export default function ClientGuestPage() {
+  const eventId = useClientEventId();
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newMaxPax, setNewMaxPax] = useState(2);
+  const [addLoading, setAddLoading] = useState(false);
+  const [eventSlug, setEventSlug] = useState("");
+
+  const fetchGuests = useCallback(async () => {
+    if (!eventId) return;
+
+    try {
+      const res = await fetch(`/api/guests?event_id=${eventId}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Gagal memuat data tamu");
+      } else {
+        setGuests((data.data || []) as Guest[]);
+      }
+    } catch (err) {
+      toast.error("Terjadi kesalahan saat memuat data");
+    } finally {
+      setLoading(false);
+    }
+  }, [eventId]);
+
+  const fetchEventSlug = useCallback(async () => {
+    if (!eventId) return;
+    const supabase = createClient();
+    const { data: eventData } = await supabase
+      .from("event_info")
+      .select("event_slug")
+      .eq("id", eventId)
+      .single();
+    if (eventData) setEventSlug(eventData.event_slug);
+  }, [eventId]);
+
+  useEffect(() => {
+    fetchGuests();
+    fetchEventSlug();
+  }, [fetchGuests, fetchEventSlug]);
+
+  const processImportData = async (rows: any[]) => {
+    if (!rows.length) {
+      toast.error("File kosong atau format tidak sesuai");
+      return;
+    }
+
+    const guestsToInsert = rows
+      .filter((row) => row.name?.trim())
+      .map((row) => ({
+        name: row.name.toString().trim(),
+        slug: generateSlug(row.name.toString().trim()),
+        max_pax: row.max_pax ? parseInt(row.max_pax.toString()) || 2 : 2,
+        qr_token: generateQrToken(),
+        event_id: eventId,
+      }));
+
+    if (guestsToInsert.length === 0) {
+      toast.error("Tidak ada data tamu yang valid (kolom 'name' wajib ada)");
+      return;
+    }
+
+    setAddLoading(true);
+    try {
+      const res = await fetch("/api/guests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(guestsToInsert),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Gagal import data");
+      } else {
+        toast.success(`${guestsToInsert.length} tamu berhasil diimport`);
+        fetchGuests();
+      }
+    } catch {
+      toast.error("Terjadi kesalahan saat import");
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileExt = file.name.split(".").pop()?.toLowerCase();
+
+    if (fileExt === "csv") {
+      Papa.parse<{ name: string; max_pax?: string }>(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+          await processImportData(results.data);
+        },
+        error: () => {
+          toast.error("Gagal membaca file CSV");
+        },
+      });
+    } else if (fileExt === "xlsx" || fileExt === "xls") {
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        try {
+          const bstr = evt.target?.result;
+          const wb = XLSX.read(bstr, { type: "binary" });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const data = XLSX.utils.sheet_to_json(ws);
+          await processImportData(data);
+        } catch (err) {
+          toast.error("Gagal membaca file Excel");
+          console.error(err);
+        }
+      };
+      reader.readAsBinaryString(file);
+    } else {
+      toast.error("Format file tidak didukung. Gunakan CSV atau Excel.");
+    }
+
+    e.target.value = "";
+  };
+
+  const handleAddGuest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+
+    setAddLoading(true);
+    try {
+      const res = await fetch("/api/guests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newName.trim(),
+          max_pax: newMaxPax,
+          event_id: eventId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Gagal menambah tamu");
+        return;
+      }
+
+      toast.success("Tamu berhasil ditambahkan");
+      setNewName("");
+      setNewMaxPax(2);
+      setShowAddForm(false);
+      fetchGuests();
+    } catch {
+      toast.error("Terjadi kesalahan");
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    toast("Yakin ingin menghapus tamu ini?", {
+      action: {
+        label: "Hapus",
+        onClick: async () => {
+          try {
+            const res = await fetch(
+              `/api/guests?id=${id}&event_id=${eventId}`,
+              {
+                method: "DELETE",
+              },
+            );
+            const data = await res.json();
+            if (!res.ok) {
+              toast.error(data.error || "Gagal menghapus tamu");
+            } else {
+              toast.success("Tamu dihapus");
+              setGuests((prev) => prev.filter((g) => g.id !== id));
+            }
+          } catch {
+            toast.error("Terjadi kesalahan");
+          }
+        },
+      },
+      cancel: {
+        label: "Batal",
+        onClick: () => {},
+      },
+    });
+  };
+
+  const handleCopyLink = (slug: string) => {
+    const baseUrl =
+      typeof window !== "undefined" && window.location.hostname !== "localhost"
+        ? window.location.origin
+        : "https://akadigital.vercel.app";
+
+    const link = `${baseUrl}/${eventSlug}/to/${slug}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Link disalin");
+  };
+
+  const filtered = guests.filter((g) =>
+    g.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="font-body text-2xl font-semibold text-charcoal-dark">
+            Daftar Tamu
+          </h1>
+          <p className="font-body text-sm text-charcoal-light mt-1">
+            {guests.length} tamu terdaftar
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="cursor-pointer">
+            <input
+              type="file"
+              accept=".csv, .xlsx, .xls"
+              onChange={handleFileImport}
+              className="hidden"
+            />
+            <span className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-body border border-gray-200 rounded-md text-charcoal hover:bg-gray-50 transition-colors">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17,8 12,3 7,8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              Import CSV/Excel
+            </span>
+          </label>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowAddForm(!showAddForm)}
+          >
+            + Tambah Tamu
+          </Button>
+        </div>
+      </div>
+
+      {/* CSV Info Alert */}
+      <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-3 flex items-start gap-3">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="text-blue-500 shrink-0 mt-0.5"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+        <div className="font-body text-xs text-blue-700 leading-relaxed">
+          <p className="font-semibold mb-1">Panduan Import CSV / Excel:</p>
+          <p>
+            Pastikan file memiliki kolom header:{" "}
+            <code className="bg-blue-100 px-1 rounded">name</code> (wajib) dan{" "}
+            <code className="bg-blue-100 px-1 rounded">max_pax</code> (opsional,
+            default 2).
+          </p>
+        </div>
+      </div>
+
+      {/* Add Form */}
+      {showAddForm && (
+        <form
+          onSubmit={handleAddGuest}
+          className="bg-white rounded-lg border border-gray-100 p-5 flex flex-col sm:flex-row gap-3"
+        >
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Nama lengkap tamu"
+            className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm font-body focus:outline-none focus:border-blue-400/40"
+          />
+          <select
+            value={newMaxPax}
+            onChange={(e) => setNewMaxPax(Number(e.target.value))}
+            className="px-3 py-2 border border-gray-200 rounded-md text-sm font-body focus:outline-none focus:border-blue-400/40"
+          >
+            {[1, 2, 3, 4, 5].map((n) => (
+              <option key={n} value={n}>
+                Max {n} pax
+              </option>
+            ))}
+          </select>
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            loading={addLoading}
+          >
+            Simpan
+          </Button>
+        </form>
+      )}
+
+      {/* Search */}
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Cari nama tamu..."
+        className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-lg text-sm font-body focus:outline-none focus:border-blue-400/30"
+      />
+
+      {/* Table */}
+      <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-gray-100">
+                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase">
+                  Nama
+                </th>
+                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden sm:table-cell">
+                  Status
+                </th>
+                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden md:table-cell">
+                  Pax
+                </th>
+                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden lg:table-cell">
+                  Check-in
+                </th>
+                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase text-right">
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-4 py-10 text-center font-body text-sm text-charcoal-light"
+                  >
+                    Memuat...
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-4 py-10 text-center font-body text-sm text-charcoal-light"
+                  >
+                    Belum ada tamu
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((guest) => (
+                  <tr
+                    key={guest.id}
+                    className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <p className="font-body text-sm font-medium text-charcoal-dark">
+                        {guest.name}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1 sm:hidden">
+                        <Badge
+                          variant={
+                            guest.rsvp_status === "attending"
+                              ? "attending"
+                              : guest.rsvp_status === "not_attending"
+                                ? "not_attending"
+                                : "pending"
+                          }
+                        >
+                          {guest.rsvp_status}
+                        </Badge>
+                        <span className="font-body text-[10px] text-charcoal-light flex items-center gap-1">
+                          <svg
+                            className="w-3 h-3"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                          </svg>
+                          {guest.rsvp_status === "attending"
+                            ? guest.rsvp_pax
+                            : `Max ${guest.max_pax}`}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      <Badge
+                        variant={
+                          guest.rsvp_status === "attending"
+                            ? "attending"
+                            : guest.rsvp_status === "not_attending"
+                              ? "not_attending"
+                              : "pending"
+                        }
+                      >
+                        {guest.rsvp_status === "attending"
+                          ? "Hadir"
+                          : guest.rsvp_status === "not_attending"
+                            ? "Tidak Hadir"
+                            : "Pending"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 font-body text-sm text-charcoal hidden md:table-cell">
+                      {guest.rsvp_status === "attending" ? (
+                        <span className="font-semibold text-charcoal-dark">
+                          {guest.rsvp_pax}
+                        </span>
+                      ) : (
+                        <span className="text-charcoal-light">
+                          Max {guest.max_pax}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      {guest.checked_in ? (
+                        <Badge variant="checked_in">✓ Checked-in</Badge>
+                      ) : (
+                        <span className="font-body text-xs text-charcoal-light/40">
+                          —
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleCopyLink(guest.slug)}
+                          className="p-1.5 rounded text-charcoal-light hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                          title="Salin link"
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                          >
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(guest.id)}
+                          className="p-1.5 rounded text-charcoal-light hover:text-red-500 hover:bg-red-50 transition-colors"
+                          title="Hapus"
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                          >
+                            <polyline points="3,6 5,6 21,6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}

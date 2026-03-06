@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { NextResponse, NextRequest } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getAuthorizedSession } from "@/lib/auth-shared";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { qr_token, event_id } = body;
@@ -13,19 +14,16 @@ export async function POST(req: Request) {
       );
     }
 
-    const supabase = await createClient();
-
-    // Verify admin is authenticated
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    // New unified auth check
+    const session = await getAuthorizedSession(req, event_id);
+    if (!session) {
       return NextResponse.json(
         { status: "error", error: "Unauthorized" },
         { status: 401 },
       );
     }
+
+    const supabase = createAdminClient();
 
     // Find the guest by qr_token and event_id
     const { data: guest, error: fetchError } = await supabase

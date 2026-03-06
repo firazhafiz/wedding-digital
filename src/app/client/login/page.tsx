@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import Button from "@/components/ui/Button";
 
-export default function AdminLoginPage() {
+export default function ClientLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,19 +21,21 @@ export default function AdminLoginPage() {
 
     setLoading(true);
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch("/api/client/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (error) {
-        toast.error(error.message || "Login gagal");
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Login gagal");
         return;
       }
 
-      toast.success("Login berhasil");
-      router.push("/admin/events");
+      toast.success("Login berhasil!");
+      router.push("/client");
       router.refresh();
     } catch {
       toast.error("Terjadi kesalahan");
@@ -44,56 +45,56 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-charcoal-dark flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#0f1a2e] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="font-display text-3xl text-off-white mb-2">
-            Admin Panel
+            Client Portal
           </h1>
           <p className="font-body text-sm text-white/40 tracking-wider">
-            Dashboard untuk manajemen wedding event
+            Kelola Event Anda
           </p>
         </div>
 
         {/* Form */}
         <form
           onSubmit={handleLogin}
-          className="bg-charcoal/50 border border-white/5 rounded-lg p-8 space-y-6 backdrop-blur-sm"
+          className="bg-white/5 border border-white/10 rounded-lg p-8 space-y-6 backdrop-blur-sm"
         >
           <div>
             <label
-              htmlFor="email"
+              htmlFor="client-email"
               className="block font-body text-xs tracking-[0.15em] uppercase text-white/40 mb-2"
             >
               Email
             </label>
             <input
-              id="email"
+              id="client-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@example.com"
+              placeholder="client@example.com"
               autoComplete="email"
-              className="w-full px-4 py-3 bg-charcoal-dark/60 border border-white/10 rounded-md text-off-white font-body placeholder:text-white/20 focus:outline-none focus:border-gold/40 focus:ring-1 focus:ring-gold/20 transition-all duration-300"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-md text-off-white font-body placeholder:text-white/20 focus:outline-none focus:border-blue-400/40 focus:ring-1 focus:ring-blue-400/20 transition-all duration-300"
             />
           </div>
 
           <div>
             <label
-              htmlFor="password"
+              htmlFor="client-password"
               className="block font-body text-xs tracking-[0.15em] uppercase text-white/40 mb-2"
             >
               Password
             </label>
             <input
-              id="password"
+              id="client-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               autoComplete="current-password"
-              className="w-full px-4 py-3 bg-charcoal-dark/60 border border-white/10 rounded-md text-off-white font-body placeholder:text-white/20 focus:outline-none focus:border-gold/40 focus:ring-1 focus:ring-gold/20 transition-all duration-300"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-md text-off-white font-body placeholder:text-white/20 focus:outline-none focus:border-blue-400/40 focus:ring-1 focus:ring-blue-400/20 transition-all duration-300"
             />
           </div>
 
@@ -102,14 +103,14 @@ export default function AdminLoginPage() {
             variant="primary"
             size="lg"
             loading={loading}
-            className="w-full shadow-none! hover:shadow-none!"
+            className="w-full bg-blue-600! hover:bg-blue-700! hover:shadow-none! shadow-none!"
           >
             Masuk
           </Button>
         </form>
 
         <p className="text-center mt-6 font-body text-xs text-white/20">
-          Hanya untuk admin
+          Hubungi pengelola jika belum memiliki akses
         </p>
       </div>
     </div>
