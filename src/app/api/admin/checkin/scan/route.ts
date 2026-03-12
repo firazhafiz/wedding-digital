@@ -5,7 +5,7 @@ import { getAuthorizedSession } from "@/lib/auth-shared";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { qr_token, event_id } = body;
+    const { qr_token, event_id, override } = body;
 
     if (!qr_token || !event_id) {
       return NextResponse.json(
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     // Find the guest by qr_token and event_id
     const { data: guest, error: fetchError } = await supabase
       .from("guests")
-      .select("id, name, checked_in, checked_in_at")
+      .select("id, name, checked_in, checked_in_at, checked_in_count, rsvp_pax, max_pax")
       .eq("qr_token", qr_token)
       .eq("event_id", event_id)
       .single();
@@ -43,24 +43,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if already checked in
-    if (guest.checked_in) {
+    const currentCount = guest.checked_in_count || 0;
+    const totalPax = guest.rsvp_pax || guest.max_pax || 1;
+
+    // If already fully checked in and NOT override
+    if (currentCount >= totalPax && !override) {
       return NextResponse.json(
         {
           status: "already_checked_in",
-          data: { guest_name: guest.name, checked_in_at: guest.checked_in_at },
+          data: {
+            guest_name: guest.name,
+            checked_in_at: guest.checked_in_at,
+            checked_in_count: currentCount,
+            total_pax: totalPax,
+          },
         },
         { status: 200 },
       );
     }
 
-    // Perform Check-in
+    // Increment checked_in_count
+    const newCount = currentCount + 1;
+    const isFullyCheckedIn = newCount >= totalPax;
     const newCheckedInAt = new Date().toISOString();
+
     const { error: updateError } = await supabase
       .from("guests")
       .update({
-        checked_in: true,
-        checked_in_at: newCheckedInAt,
+        checked_in_count: newCount,
+        checked_in: isFullyCheckedIn,
+        checked_in_at: guest.checked_in_at || newCheckedInAt,
       })
       .eq("id", guest.id);
 
@@ -68,10 +80,22 @@ export async function POST(req: NextRequest) {
       throw new Error("Gagal menyimpan data check-in ke database");
     }
 
+    // Determine response status
+    const responseStatus = override
+      ? "override_success"
+      : isFullyCheckedIn
+        ? "success"
+        : "partial_checkin";
+
     return NextResponse.json(
       {
-        status: "success",
-        data: { guest_name: guest.name, checked_in_at: newCheckedInAt },
+        status: responseStatus,
+        data: {
+          guest_name: guest.name,
+          checked_in_at: guest.checked_in_at || newCheckedInAt,
+          checked_in_count: newCount,
+          total_pax: totalPax,
+        },
       },
       { status: 200 },
     );

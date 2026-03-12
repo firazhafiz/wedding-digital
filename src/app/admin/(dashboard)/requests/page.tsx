@@ -4,10 +4,14 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { setActiveEventId } from "@/lib/admin/context";
 
 interface OrderRequest {
   id: string;
   package_type: string;
+  guest_qty: number;
+  total_price: number;
   client_name: string;
   client_phone: string;
   client_email: string | null;
@@ -30,10 +34,31 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   rejected: { label: "Ditolak", color: "bg-red-100 text-red-700" },
 };
 
+function formatRp(amount: number) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function getPackageLabel(type: string) {
+  if (type === "satuan") return "Satuan";
+  if (type === "bundling") return "Bundling";
+  if (type === "combine") return "Combine";
+  return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
 export default function AdminRequestsPage() {
+  const router = useRouter();
   const [requests, setRequests] = useState<OrderRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  
+  // Modal State
+  const [confirmModal, setConfirmModal] = useState<{ id: string; req: OrderRequest } | null>(null);
+  const [creatingEvent, setCreatingEvent] = useState(false);
 
   const fetchRequests = useCallback(async () => {
     const supabase = createClient();
@@ -68,16 +93,71 @@ export default function AdminRequestsPage() {
 
     if (error) {
       toast.error("Gagal update status");
+      return false;
     } else {
       toast.success("Status berhasil diupdate");
       fetchRequests();
+      return true;
     }
+  };
+
+  const handleStatusChange = (req: OrderRequest, newStatus: string) => {
+    if (newStatus === "confirmed" && req.status !== "confirmed") {
+      setConfirmModal({ id: req.id, req });
+    } else {
+      updateStatus(req.id, newStatus);
+    }
+  };
+
+  const handleConfirmAction = async (createCatalog: boolean) => {
+    if (!confirmModal) return;
+    const { id, req } = confirmModal;
+
+    setCreatingEvent(true);
+    
+    // 1. Update status to confirmed
+    const success = await updateStatus(id, "confirmed");
+    
+    if (success && createCatalog) {
+      const supabase = createClient();
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const groomFirstName = req.groom_name.trim().split(/\s+/)[0] || "groom";
+      const brideFirstName = req.bride_name.trim().split(/\s+/)[0] || "bride";
+      const slug = `${groomFirstName}-${brideFirstName}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      
+      const { data: eventData, error: eventError } = await supabase
+        .from('event_info')
+        .insert({
+          user_id: user?.id || null,
+          event_slug: slug,
+          groom_name: req.groom_name,
+          bride_name: req.bride_name,
+        })
+        .select()
+        .single();
+        
+      if (eventError) {
+        toast.error("Status dikonfirmasi, tapi gagal membuat katalog otomatis.");
+        console.error(eventError);
+      } else {
+        toast.success("Katalog undangan berhasil dibuat!");
+        setActiveEventId(eventData.id);
+        router.push(`/admin/settings`);
+        router.refresh();
+        return;
+      }
+    }
+    
+    setConfirmModal(null);
+    setCreatingEvent(false);
   };
 
   const filtered = requests;
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-6 w-full relative">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -136,21 +216,45 @@ export default function AdminRequestsPage() {
                       {statusLabels[r.status]?.label || r.status}
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gold/10 text-gold">
-                      {r.package_type === "starter" ? "Starter" : "Custom"}
+                      {getPackageLabel(r.package_type)}
                     </span>
                   </div>
 
                   <div className="mt-4 flex flex-col gap-2 w-full min-w-0">
                     <p className="font-body text-xs text-charcoal-light flex items-start gap-2 w-full">
-                      <span className="text-charcoal/60 w-[60px] shrink-0">
-                        Pemesan:
+                      <span className="text-charcoal/60 w-[80px] shrink-0">
+                        Paket:
+                      </span>
+                      <span className="flex-1 min-w-0 break-all font-medium text-gold-dark">
+                        {getPackageLabel(r.package_type)}
+                      </span>
+                    </p>
+                    <p className="font-body text-xs text-charcoal-light flex items-start gap-2 w-full">
+                      <span className="text-charcoal/60 w-[80px] shrink-0">
+                        Undangan:
                       </span>
                       <span className="flex-1 min-w-0 break-all font-medium">
+                        {r.guest_qty > 0 ? `${r.guest_qty} orang (pax)` : "-"}
+                      </span>
+                    </p>
+                    <p className="font-body text-xs text-charcoal-light flex items-start gap-2 w-full">
+                      <span className="text-charcoal/60 w-[80px] shrink-0">
+                        Total Harga:
+                      </span>
+                      <span className="flex-1 min-w-0 break-all font-medium text-emerald-600">
+                        {r.total_price > 0 ? formatRp(r.total_price) : "-"}
+                      </span>
+                    </p>
+                    <p className="font-body text-xs text-charcoal-light flex items-start gap-2 w-full mt-2">
+                      <span className="text-charcoal/60 w-[80px] shrink-0">
+                        Pemesan:
+                      </span>
+                      <span className="flex-1 min-w-0 break-all">
                         {r.client_name}
                       </span>
                     </p>
                     <p className="font-body text-xs text-charcoal-light flex items-start gap-2 w-full">
-                      <span className="text-charcoal/60 w-[60px] shrink-0">
+                      <span className="text-charcoal/60 w-[80px] shrink-0">
                         WA:
                       </span>
                       <span className="flex-1 min-w-0 break-all">
@@ -159,7 +263,7 @@ export default function AdminRequestsPage() {
                     </p>
                     {r.client_email && (
                       <p className="font-body text-xs text-charcoal-light flex items-start gap-2 w-full">
-                        <span className="text-charcoal/60 w-[60px] shrink-0">
+                        <span className="text-charcoal/60 w-[80px] shrink-0">
                           Email:
                         </span>
                         <span className="flex-1 min-w-0 break-all">
@@ -169,7 +273,7 @@ export default function AdminRequestsPage() {
                     )}
                     {r.event_date && (
                       <p className="font-body text-xs text-charcoal-light flex items-start gap-2 w-full">
-                        <span className="text-charcoal/60 w-[60px] shrink-0">
+                        <span className="text-charcoal/60 w-[80px] shrink-0">
                           Tanggal:
                         </span>
                         <span className="flex-1 min-w-0 break-all">
@@ -179,7 +283,7 @@ export default function AdminRequestsPage() {
                     )}
                     {r.event_location && (
                       <p className="font-body text-xs text-charcoal-light flex items-start gap-2 w-full">
-                        <span className="text-charcoal/60 w-[60px] shrink-0">
+                        <span className="text-charcoal/60 w-[80px] shrink-0">
                           Lokasi:
                         </span>
                         <span className="flex-1 min-w-0 break-all">
@@ -213,7 +317,7 @@ export default function AdminRequestsPage() {
                   <div className="relative group/select min-w-[130px]">
                     <select
                       value={r.status}
-                      onChange={(e) => updateStatus(r.id, e.target.value)}
+                      onChange={(e) => handleStatusChange(r, e.target.value)}
                       className={cn(
                         "appearance-none w-full px-3 py-1.5 pr-8 rounded-md text-[11px] font-body font-semibold border-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all",
                         statusLabels[r.status]?.color ||
@@ -242,6 +346,57 @@ export default function AdminRequestsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl animate-in fade-in zoom-in duration-200">
+            <h3 className="font-display text-xl text-charcoal-dark mb-2">
+              Pesanan Dikonfirmasi
+            </h3>
+            <p className="font-body text-sm text-charcoal-light mb-6 leading-relaxed">
+              Anda mengubah status pesanan menjadi <span className="font-semibold text-emerald-600">Dikonfirmasi</span>. 
+              Apakah Anda ingin otomatis membuat <b>Katalog Event</b> baru dengan nama mempelai <b>{confirmModal.req.groom_name} & {confirmModal.req.bride_name}</b>?
+            </p>
+            
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => handleConfirmAction(true)}
+                disabled={creatingEvent}
+                className="w-full py-3 px-4 rounded-xl font-body text-sm font-semibold bg-charcoal-dark text-white hover:bg-charcoal transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {creatingEvent ? (
+                  "Memproses..."
+                ) : (
+                  <>
+                    Ya, Buat Katalog Sekarang
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14" />
+                      <path d="m12 5 7 7-7 7" />
+                    </svg>
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={() => handleConfirmAction(false)}
+                disabled={creatingEvent}
+                className="w-full py-3 px-4 rounded-xl font-body text-sm font-semibold text-charcoal-dark bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                Tidak, Hanya Update Status Saja
+              </button>
+
+              <button
+                onClick={() => setConfirmModal(null)}
+                disabled={creatingEvent}
+                className="w-full py-2 px-4 rounded-xl font-body text-xs font-medium text-charcoal-light hover:text-charcoal transition-colors disabled:opacity-50 mt-1"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

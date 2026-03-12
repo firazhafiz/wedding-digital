@@ -10,6 +10,8 @@ const WA_NUMBER = "6282332676848";
 interface OrderData {
   id: string;
   package_type: string;
+  guest_qty: number;
+  total_price: number;
   client_name: string;
   client_phone: string;
   client_email: string | null;
@@ -19,6 +21,22 @@ interface OrderData {
   event_location: string | null;
   notes: string | null;
   created_at: string;
+}
+
+function formatRp(amount: number) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function getPackageName(type: string) {
+  if (type === "satuan") return "Satuan";
+  if (type === "bundling") return "Bundling";
+  if (type === "combine") return "Combine";
+  return type;
 }
 
 function SuccessContent() {
@@ -48,7 +66,7 @@ function SuccessContent() {
 
   const waMessage = order
     ? encodeURIComponent(
-        `Halo akadigital, saya telah melakukan pemesanan paket Starter.\n\nDetail:\n- Nama: ${order.client_name}\n- Mempelai: ${order.groom_name} & ${order.bride_name}\n- Tanggal: ${order.event_date || "Belum ditentukan"}\n- Lokasi: ${order.event_location || "Belum ditentukan"}\n\nMohon konfirmasi pesanan saya. Terima kasih!`,
+        `Halo akadigital, saya telah melakukan pemesanan paket ${getPackageName(order.package_type)} untuk ${order.guest_qty || 0} undangan.\n\nDetail:\n- Nama: ${order.client_name}\n- Mempelai: ${order.groom_name} & ${order.bride_name}\n- Tanggal: ${order.event_date || "Belum ditentukan"}\n- Lokasi: ${order.event_location || "Belum ditentukan"}\n- Total Harga: ${formatRp(order.total_price || 0)}\n\nMohon konfirmasi pesanan saya. Terima kasih!`,
       )
     : "";
 
@@ -113,7 +131,14 @@ function SuccessContent() {
 
           <div className="space-y-3">
             {[
-              { label: "Paket", value: "Starter — Rp 299.000" },
+              {
+                label: "Paket",
+                value: `${getPackageName(order.package_type)} — ${formatRp(order.total_price || 0)}`,
+              },
+              {
+                label: "Total Undangan",
+                value: `${order.guest_qty || 0} pax`,
+              },
               { label: "Nama Pemesan", value: order.client_name },
               { label: "WhatsApp", value: order.client_phone },
               ...(order.client_email

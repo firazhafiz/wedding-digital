@@ -20,8 +20,57 @@ export default function GuestManagementPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [newMaxPax, setNewMaxPax] = useState(2);
+  const [newPhone, setNewPhone] = useState("");
   const [addLoading, setAddLoading] = useState(false);
   const [eventSlug, setEventSlug] = useState("");
+  const [waTemplate, setWaTemplate] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editMaxPax, setEditMaxPax] = useState(2);
+  const [editLoading, setEditLoading] = useState(false);
+
+  const handleStartEdit = (guest: Guest) => {
+    setEditingId(guest.id);
+    setEditName(guest.name);
+    setEditPhone(guest.phone_number || "");
+    setEditMaxPax(guest.max_pax);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingId || !editName.trim()) {
+      toast.error("Nama tamu tidak boleh kosong");
+      return;
+    }
+    const eventId = getActiveEventId();
+    if (!eventId) return;
+    setEditLoading(true);
+    try {
+      const res = await fetch("/api/guests", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingId,
+          event_id: eventId,
+          name: editName.trim(),
+          phone_number: editPhone.trim() || null,
+          max_pax: editMaxPax,
+        }),
+      });
+      if (!res.ok) throw new Error("Gagal menyimpan");
+      toast.success("Data tamu berhasil diperbarui");
+      setEditingId(null);
+      fetchGuests();
+    } catch {
+      toast.error("Gagal memperbarui data tamu");
+    } finally {
+      setEditLoading(false);
+    }
+  };
 
   const fetchGuests = useCallback(async () => {
     const eventId = getActiveEventId();
@@ -29,14 +78,17 @@ export default function GuestManagementPage() {
 
     const supabase = createClient();
 
-    // Fetch event slug if not already set
+    // Fetch event slug and wa_template if not already set
     if (!eventSlug) {
       const { data: eventData } = await supabase
         .from("event_info")
-        .select("event_slug")
+        .select("event_slug, wa_template")
         .eq("id", eventId)
         .single();
-      if (eventData) setEventSlug(eventData.event_slug);
+      if (eventData) {
+        setEventSlug(eventData.event_slug);
+        setWaTemplate(eventData.wa_template || "");
+      }
     }
 
     const { data, error } = await supabase
@@ -63,15 +115,15 @@ export default function GuestManagementPage() {
       return;
     }
 
-    const eventId = getActiveEventId();
     const guestsToInsert = rows
       .filter((row) => row.name?.trim())
       .map((row) => ({
         name: row.name.toString().trim(),
         slug: generateSlug(row.name.toString().trim()),
         max_pax: row.max_pax ? parseInt(row.max_pax.toString()) || 2 : 2,
+        phone_number: row.phone_number?.toString().trim() || null,
         qr_token: generateQrToken(),
-        event_id: eventId,
+        event_id: getActiveEventId(),
       }));
 
     if (guestsToInsert.length === 0) {
@@ -143,6 +195,7 @@ export default function GuestManagementPage() {
         body: JSON.stringify({
           name: newName.trim(),
           max_pax: newMaxPax,
+          phone_number: newPhone.trim() || null,
           event_id: eventId,
         }),
       });
@@ -156,6 +209,7 @@ export default function GuestManagementPage() {
       toast.success("Tamu berhasil ditambahkan");
       setNewName("");
       setNewMaxPax(2);
+      setNewPhone("");
       setShowAddForm(false);
       fetchGuests();
     } catch {
@@ -216,7 +270,7 @@ export default function GuestManagementPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
           {/* CSV Import */}
           <label className="cursor-pointer">
             <input
@@ -225,7 +279,7 @@ export default function GuestManagementPage() {
               onChange={handleFileImport}
               className="hidden"
             />
-            <span className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-body border border-gray-200 rounded-md text-charcoal hover:bg-gray-50 transition-colors">
+            <span className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-body border border-gray-200 rounded-md text-charcoal hover:bg-gray-50 transition-colors whitespace-nowrap">
               <svg
                 width="14"
                 height="14"
@@ -238,14 +292,94 @@ export default function GuestManagementPage() {
                 <polyline points="17,8 12,3 7,8" />
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
-              Import CSV/Excel
+              Import
             </span>
           </label>
+
+          {/* Download Template */}
+          <button
+            onClick={() => {
+              const templateData = [
+                { name: "Contoh Nama Tamu", max_pax: 2, phone_number: "081234567890" },
+                { name: "Budi Santoso", max_pax: 3, phone_number: "" },
+              ];
+              const ws = XLSX.utils.json_to_sheet(templateData);
+              const wb = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(wb, ws, "Daftar Tamu");
+              XLSX.writeFile(wb, "template-daftar-tamu.xlsx");
+              toast.success("Template berhasil diunduh!");
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-body border border-gray-200 rounded-md text-charcoal hover:bg-gray-50 transition-colors whitespace-nowrap"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14,2 14,8 20,8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+            Template
+          </button>
+
+          {/* CSV Export */}
+          <button
+            onClick={() => {
+              if (guests.length === 0) {
+                toast.error("Tidak ada data tamu untuk di-export");
+                return;
+              }
+              const headers = [
+                "Nama",
+                "Slug",
+                "No HP",
+                "Status RSVP",
+                "Jumlah Hadir",
+                "Pesan",
+                "Checked In",
+              ];
+              const rows = guests.map((g) => [
+                g.name,
+                g.slug,
+                g.phone_number || "",
+                g.rsvp_status,
+                g.rsvp_pax,
+                g.rsvp_message || "",
+                g.checked_in ? "Ya" : "Tidak",
+              ]);
+              const csv = [headers, ...rows]
+                .map((row) => row.map((v) => `"${v}"`).join(","))
+                .join("\n");
+              const blob = new Blob(["\uFEFF" + csv], {
+                type: "text/csv;charset=utf-8;",
+              });
+              const link = document.createElement("a");
+              link.href = URL.createObjectURL(blob);
+              link.download = `daftar-tamu-${eventSlug || "event"}.csv`;
+              link.click();
+              URL.revokeObjectURL(link.href);
+              toast.success("Data tamu berhasil di-export!");
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-body border border-gray-200 rounded-md text-charcoal hover:bg-gray-50 transition-colors whitespace-nowrap"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7,10 12,15 17,10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
 
           <Button
             variant="primary"
             size="sm"
             onClick={() => setShowAddForm(!showAddForm)}
+            className="shadow-none! py-2.5!"
           >
             + Tambah Tamu
           </Button>
@@ -271,8 +405,11 @@ export default function GuestManagementPage() {
           <p className="font-semibold mb-1">Panduan Import CSV / Excel:</p>
           <p>
             Pastikan file memiliki kolom header:{" "}
-            <code className="bg-blue-100 px-1 rounded">name</code> (wajib) dan{" "}
-            baris
+            <code className="bg-blue-100 px-1 rounded">name</code> (wajib),{" "}
+            <code className="bg-blue-100 px-1 rounded">max_pax</code> (opsional,
+            default 2), dan{" "}
+            <code className="bg-blue-100 px-1 rounded">phone_number</code>{" "}
+            (opsional, format 08xxx).
           </p>
         </div>
       </div>
@@ -289,6 +426,13 @@ export default function GuestManagementPage() {
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Nama lengkap tamu"
             className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm font-body focus:outline-none focus:border-gold/40"
+          />
+          <input
+            type="tel"
+            value={newPhone}
+            onChange={(e) => setNewPhone(e.target.value)}
+            placeholder="No WA (opsional)"
+            className="w-36 px-3 py-2 border border-gray-200 rounded-md text-sm font-body focus:outline-none focus:border-gold/40"
           />
           <select
             value={newMaxPax}
@@ -331,6 +475,9 @@ export default function GuestManagementPage() {
                   Nama
                 </th>
                 <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden sm:table-cell">
+                  No WA
+                </th>
+                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden sm:table-cell">
                   Status
                 </th>
                 <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden md:table-cell">
@@ -348,7 +495,7 @@ export default function GuestManagementPage() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-10 text-center font-body text-sm text-charcoal-light"
                   >
                     Memuat...
@@ -357,50 +504,63 @@ export default function GuestManagementPage() {
               ) : filtered.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-10 text-center font-body text-sm text-charcoal-light"
                   >
                     Belum ada tamu
                   </td>
                 </tr>
               ) : (
-                filtered.map((guest) => (
+                filtered.map((guest) => {
+                  const isEditing = editingId === guest.id;
+                  return (
                   <tr
                     key={guest.id}
-                    className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                    className={`border-b border-gray-50 transition-colors ${isEditing ? 'bg-blue-50/30' : 'hover:bg-gray-50/50'}`}
                   >
                     <td className="px-4 py-3">
-                      <p className="font-body text-sm font-medium text-charcoal-dark">
-                        {guest.name}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 sm:hidden">
-                        <Badge
-                          variant={
-                            guest.rsvp_status === "attending"
-                              ? "attending"
-                              : guest.rsvp_status === "not_attending"
-                                ? "not_attending"
-                                : "pending"
-                          }
-                        >
-                          {guest.rsvp_status}
-                        </Badge>
-                        <span className="font-body text-[10px] text-charcoal-light flex items-center gap-1">
-                          <svg
-                            className="w-3 h-3"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                            <circle cx="9" cy="7" r="4" />
-                          </svg>
-                          {guest.rsvp_status === "attending"
-                            ? guest.rsvp_pax
-                            : `Max ${guest.max_pax}`}
+                      {isEditing ? (
+                        <input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="w-full px-2 py-1 text-sm font-body border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        />
+                      ) : (
+                        <>
+                          <p className="font-body text-sm font-medium text-charcoal-dark">
+                            {guest.name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1 sm:hidden">
+                            <Badge
+                              variant={
+                                guest.rsvp_status === "attending"
+                                  ? "attending"
+                                  : guest.rsvp_status === "not_attending"
+                                    ? "not_attending"
+                                    : "pending"
+                              }
+                            >
+                              {guest.rsvp_status}
+                            </Badge>
+                          </div>
+                        </>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      {isEditing ? (
+                        <input
+                          value={editPhone}
+                          onChange={(e) => setEditPhone(e.target.value)}
+                          placeholder="08xxx"
+                          className="w-full px-2 py-1 text-xs font-body border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        />
+                      ) : (
+                        <span className="font-body text-xs text-charcoal-light">
+                          {guest.phone_number || (
+                            <span className="text-charcoal-light/30">—</span>
+                          )}
                         </span>
-                      </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <Badge
@@ -420,7 +580,16 @@ export default function GuestManagementPage() {
                       </Badge>
                     </td>
                     <td className="px-4 py-3 font-body text-sm text-charcoal hidden md:table-cell">
-                      {guest.rsvp_status === "attending" ? (
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          min={1}
+                          max={20}
+                          value={editMaxPax}
+                          onChange={(e) => setEditMaxPax(Number(e.target.value))}
+                          className="w-16 px-2 py-1 text-sm font-body border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        />
+                      ) : guest.rsvp_status === "attending" ? (
                         <span className="font-semibold text-charcoal-dark">
                           {guest.rsvp_pax}
                         </span>
@@ -441,44 +610,68 @@ export default function GuestManagementPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => handleCopyLink(guest.slug)}
-                          className="p-1.5 rounded text-charcoal-light hover:text-gold hover:bg-gold/5 transition-colors"
-                          title="Salin link"
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                          >
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(guest.id)}
-                          className="p-1.5 rounded text-charcoal-light hover:text-red-500 hover:bg-red-50 transition-colors"
-                          title="Hapus"
-                        >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                          >
-                            <polyline points="3,6 5,6 21,6" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          </svg>
-                        </button>
+                        {isEditing ? (
+                          <>
+                            <button
+                              onClick={handleSaveEdit}
+                              disabled={editLoading}
+                              className="p-1.5 rounded text-emerald-600 hover:bg-emerald-50 transition-colors"
+                              title="Simpan"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="20,6 9,17 4,12" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              className="p-1.5 rounded text-red-400 hover:bg-red-50 transition-colors"
+                              title="Batal"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleStartEdit(guest)}
+                              className="p-1.5 rounded text-charcoal-light hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                              title="Edit"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleCopyLink(guest.slug)}
+                              className="p-1.5 rounded text-charcoal-light hover:text-gold hover:bg-gold/5 transition-colors"
+                              title="Salin link"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(guest.id)}
+                              className="p-1.5 rounded text-charcoal-light hover:text-red-500 hover:bg-red-50 transition-colors"
+                              title="Hapus"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                <polyline points="3,6 5,6 21,6" />
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

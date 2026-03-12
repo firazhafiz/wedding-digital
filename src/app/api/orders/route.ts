@@ -7,6 +7,8 @@ export async function POST(request: Request) {
 
     const {
       package_type,
+      guest_qty,
+      total_price,
       client_name,
       client_phone,
       client_email,
@@ -30,6 +32,8 @@ export async function POST(request: Request) {
       .from("order_requests")
       .insert({
         package_type: package_type || "starter",
+        guest_qty: guest_qty || 1,
+        total_price: total_price || 0,
         client_name,
         client_phone,
         client_email: client_email || null,

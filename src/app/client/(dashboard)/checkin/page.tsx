@@ -106,8 +106,12 @@ export default function ClientCheckinPage() {
     }
   };
 
+  const totalAttending = guests.length;
   const checkedIn = guests.filter((g) => g.checked_in).length;
   const totalPax = guests.reduce((sum, g) => sum + (g.rsvp_pax || 0), 0);
+  const checkedInPax = guests
+    .filter((g) => g.checked_in)
+    .reduce((sum, g) => sum + (g.rsvp_pax || 0), 0);
 
   const filtered = guests.filter((g) =>
     g.name.toLowerCase().includes(search.toLowerCase()),
@@ -145,15 +149,15 @@ export default function ClientCheckinPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
-          label="Total Hadir (RSVP)"
-          value={guests.length}
+          label="Total RSVP Hadir"
+          value={totalAttending}
           color="gold"
           icon={
             <svg
-              width="18"
-              height="18"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -166,30 +170,31 @@ export default function ClientCheckinPage() {
         />
         <StatsCard
           label="Checked-in"
-          value={`${checkedIn} / ${guests.length}`}
+          value={checkedIn}
           color="emerald"
+          trend={`${totalAttending ? Math.round((checkedIn / totalAttending) * 100) : 0}%`}
           icon={
             <svg
-              width="18"
-              height="18"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.5"
             >
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22,4 12,14.01 9,11.01" />
+              <path d="M9 11l3 3L22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
             </svg>
           }
         />
         <StatsCard
-          label="Total Pax"
+          label="Total Pax (RSVP)"
           value={totalPax}
           color="blue"
           icon={
             <svg
-              width="18"
-              height="18"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -202,16 +207,91 @@ export default function ClientCheckinPage() {
             </svg>
           }
         />
+        <StatsCard
+          label="Pax Hadir"
+          value={checkedInPax}
+          color="emerald"
+          icon={
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22,4 12,14.01 9,11.01" />
+            </svg>
+          }
+        />
       </div>
 
-      {/* Search */}
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Cari nama tamu..."
-        className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-lg text-sm font-body focus:outline-none focus:border-blue-400/30"
-      />
+      {/* Search & Actions */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Cari nama tamu..."
+          className="flex-1 w-full px-4 py-2.5 bg-white border border-gray-100 rounded-lg text-sm font-body focus:outline-none focus:border-blue-400/30"
+        />
+        <button
+          onClick={() => {
+            const checkedInGuests = guests.filter((g) => g.checked_in);
+            if (checkedInGuests.length === 0) {
+              toast.error("Belum ada tamu yang check-in");
+              return;
+            }
+            const headers = [
+              "Nama",
+              "Slug",
+              "No HP",
+              "Waktu Check-in",
+              "Jumlah Hadir",
+              "Pesan",
+            ];
+            const rows = checkedInGuests.map((g) => [
+              g.name,
+              g.slug,
+              g.phone_number || "",
+              g.checked_in_at
+                ? new Date(g.checked_in_at).toLocaleString("id-ID")
+                : "",
+              g.rsvp_pax,
+              g.rsvp_message || "",
+            ]);
+            const csv = [headers, ...rows]
+              .map((row) => row.map((v) => `"${v}"`).join(","))
+              .join("\n");
+            const blob = new Blob(["\uFEFF" + csv], {
+              type: "text/csv;charset=utf-8;",
+            });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            // using "event" as a fallback since event_slug is not fetched directly here
+            link.download = `rekap-checkin-tamu.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            toast.success("Rekap check-in berhasil di-export!");
+          }}
+          className="flex items-center justify-center gap-2 px-6 py-2.5 border border-gray-200 text-charcoal rounded-lg hover:bg-gray-50 transition-colors font-body text-sm font-medium whitespace-nowrap"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7,10 12,15 17,10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Export CSV
+        </button>
+      </div>
 
       {/* Table */}
       <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">

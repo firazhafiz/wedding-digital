@@ -65,7 +65,7 @@ export default function CountdownSection({ eventInfo }: CountdownSectionProps) {
 
         {/* Countdown */}
         {!isExpired ? (
-          <div className="flex items-center justify-center gap-3 md:gap-6 mb-16">
+          <div className="flex items-center justify-center gap-3 md:gap-6 mb-8">
             <CountdownUnit value={days} label="Hari" />
             <span className="font-display text-gold text-3xl md:text-4xl mb-6">
               :
@@ -81,10 +81,50 @@ export default function CountdownSection({ eventInfo }: CountdownSectionProps) {
             <CountdownUnit value={seconds} label="Detik" />
           </div>
         ) : (
-          <div className="mb-16">
+          <div className="mb-8">
             <p className="font-script text-gold text-4xl md:text-5xl">
               Hari Bahagia Telah Tiba
             </p>
+          </div>
+        )}
+
+        {/* Add to Calendar Button */}
+        {eventInfo?.akad_date && (
+          <div className="mb-16">
+            <button
+              onClick={() => {
+                const title = `Pernikahan ${eventInfo?.groom_name?.split(" ")[0] || ""} & ${eventInfo?.bride_name?.split(" ")[0] || ""}`;
+                const startDate = new Date(eventInfo.akad_date!);
+                const endDate = eventInfo?.resepsi_date
+                  ? new Date(
+                      new Date(eventInfo.resepsi_date).getTime() +
+                        3 * 60 * 60 * 1000,
+                    )
+                  : new Date(startDate.getTime() + 4 * 60 * 60 * 1000);
+                const location =
+                  eventInfo?.akad_location || eventInfo?.resepsi_location || "";
+                const toGCalDate = (d: Date) =>
+                  d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+                const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${toGCalDate(startDate)}/${toGCalDate(endDate)}&location=${encodeURIComponent(location)}&details=${encodeURIComponent("Anda diundang untuk merayakan hari bahagia kami. Terima kasih!")}`;
+                window.open(url, "_blank", "noopener,noreferrer");
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gold/30 text-charcoal-dark hover:bg-gold/5 transition-all text-xs font-body tracking-wider uppercase"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              Simpan ke Kalender
+            </button>
           </div>
         )}
 

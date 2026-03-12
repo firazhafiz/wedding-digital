@@ -12,6 +12,7 @@ import SmoothScrollProvider from "../../../../components/providers/SmoothScrollP
 import WelcomeScreen from "../../../../components/invitation/WelcomeScreen";
 import HeroSection from "../../../../components/invitation/HeroSection";
 import AudioPlayer from "../../../../components/invitation/AudioPlayer";
+import AnalyticsScripts from "../../../../components/invitation/AnalyticsScripts";
 import CountdownSection from "../../../../components/invitation/CountdownSection";
 import CoupleSection from "../../../../components/invitation/CoupleSection";
 import StorylineSection from "../../../../components/invitation/StorylineSection";
@@ -74,6 +75,11 @@ export default function InvitationClient({
           <AudioPlayer
             src={eventInfo?.audio_url || "/audio/wedding-music.mp3"}
             autoPlay={audioReady}
+          />
+          {/* Analytics (GA & Pixel) */}
+          <AnalyticsScripts
+            gaId={eventInfo?.ga_id}
+            pixelId={eventInfo?.pixel_id}
           />
           {/* Hero */}
           <HeroSection eventInfo={eventInfo} guestName={guest.name} />

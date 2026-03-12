@@ -4,10 +4,69 @@ import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
+const PRICE_SATUAN = 5000;
+const PRICE_BUNDLING = 3000;
+const BUNDLING_SIZE = 100;
+
+function formatRp(amount: number) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function calcPrice(plan: string, qty: number) {
+  switch (plan) {
+    case "bundling": {
+      const packs = Math.ceil(qty / BUNDLING_SIZE) || 1;
+      const actualQty = packs * BUNDLING_SIZE;
+      return {
+        label: "Bundling",
+        desc: `${packs} paket × ${BUNDLING_SIZE} undangan × ${formatRp(PRICE_BUNDLING)}`,
+        total: actualQty * PRICE_BUNDLING,
+        qty: actualQty,
+      };
+    }
+    case "combine": {
+      const fullPacks = Math.floor(qty / BUNDLING_SIZE);
+      const remainder = qty - fullPacks * BUNDLING_SIZE;
+      const total = fullPacks * BUNDLING_SIZE * PRICE_BUNDLING + remainder * PRICE_SATUAN;
+      const parts = [];
+      if (fullPacks > 0) parts.push(`${fullPacks}×${BUNDLING_SIZE} bundling × ${formatRp(PRICE_BUNDLING)}`);
+      if (remainder > 0) parts.push(`${remainder} satuan × ${formatRp(PRICE_SATUAN)}`);
+      return { label: "Combine", desc: parts.join(" + "), total, qty };
+    }
+    default: {
+      const q = qty || 1;
+      return {
+        label: "Satuan",
+        desc: `${q} undangan × ${formatRp(PRICE_SATUAN)}`,
+        total: q * PRICE_SATUAN,
+        qty: q,
+      };
+    }
+  }
+}
+
+const PLAN_OPTIONS = [
+  { value: "satuan", label: "Satuan", sub: "Rp 5.000/undangan" },
+  { value: "bundling", label: "Bundling", sub: "Rp 3.000/undangan (min. 100)" },
+  { value: "combine", label: "Combine", sub: "Gabungan bundling + satuan" },
+];
+
 function OrderFormContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const plan = searchParams.get("plan") || "starter";
+  const initialPlan = searchParams.get("plan") || "satuan";
+  const initialQty = parseInt(searchParams.get("qty") || "") || 0;
+
+  const [plan, setPlan] = useState(initialPlan);
+  const [qty, setQty] = useState(initialQty > 0 ? String(initialQty) : "");
+  const qtyNum = parseInt(qty) || 0;
+
+  const priceInfo = calcPrice(plan, qtyNum);
 
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -29,27 +88,24 @@ function OrderFormContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !form.client_name ||
-      !form.client_phone ||
-      !form.groom_name ||
-      !form.bride_name
-    ) {
-      return;
-    }
+    if (!form.client_name || !form.client_phone || !form.groom_name || !form.bride_name) return;
+    if (qtyNum < 1) return;
 
     setLoading(true);
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, package_type: plan }),
+        body: JSON.stringify({
+          ...form,
+          package_type: plan,
+          guest_qty: priceInfo.qty,
+          total_price: priceInfo.total,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed");
-
       const data = await res.json();
-      // Redirect to success with order ID
       router.push(`/order/success?id=${data.data.id}`);
     } catch {
       alert("Gagal mengirim data. Silakan coba lagi.");
@@ -63,28 +119,16 @@ function OrderFormContent() {
       <div className="max-w-xl mx-auto">
         {/* Header */}
         <Link
-          href="/"
+          href="/#pricing"
           className="inline-flex items-center gap-2 font-body text-sm text-white/40 hover:text-white/70 transition-colors mb-8"
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
-          Kembali
+          Kembali ke Pricing
         </Link>
 
         <div className="mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-gold/20 bg-gold/5 mb-4">
-            <span className="font-body text-[10px] text-gold uppercase tracking-wider font-semibold">
-              Paket Starter
-            </span>
-          </div>
           <h1 className="font-display text-3xl md:text-4xl text-white mb-2">
             Formulir Pemesanan
           </h1>
@@ -95,6 +139,85 @@ function OrderFormContent() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* ===== Package Selection ===== */}
+          <div className="space-y-4">
+            <p className="font-body text-xs text-gold uppercase tracking-wider font-semibold">
+              Paket & Jumlah Undangan
+            </p>
+
+            {/* Plan selector */}
+            <div className="grid grid-cols-3 gap-2">
+              {PLAN_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setPlan(opt.value)}
+                  className={`px-3 py-3 rounded-lg border text-left transition-all ${
+                    plan === opt.value
+                      ? "border-gold/40 bg-gold/10"
+                      : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                  }`}
+                >
+                  <p className={`font-body text-sm font-semibold ${
+                    plan === opt.value ? "text-gold" : "text-white/70"
+                  }`}>{opt.label}</p>
+                  <p className="font-body text-[10px] text-white/35 mt-0.5">{opt.sub}</p>
+                </button>
+              ))}
+            </div>
+
+            {/* Qty input */}
+            <div>
+              <label className="block font-body text-xs text-white/50 mb-1.5">
+                Jumlah Undangan <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={qty}
+                onChange={(e) => setQty(e.target.value.replace(/\D/g, ""))}
+                required
+                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-body text-sm placeholder:text-white/20 focus:outline-none focus:border-gold/40 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                placeholder="Masukkan jumlah undangan, contoh: 250"
+              />
+              {plan === "bundling" && qtyNum > 0 && qtyNum % BUNDLING_SIZE !== 0 && (
+                <p className="font-body text-[11px] text-gold/60 mt-1">
+                  Bundling akan dibulatkan ke {Math.ceil(qtyNum / BUNDLING_SIZE) * BUNDLING_SIZE} undangan
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Price Summary */}
+          {qtyNum > 0 && (
+            <div className="rounded-xl border border-gold/20 bg-gold/5 p-5">
+              <p className="font-body text-xs text-gold uppercase tracking-wider font-semibold mb-3">
+                Rincian Harga
+              </p>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-body text-sm text-white/70">Paket</span>
+                <span className="font-body text-sm text-white font-medium">{priceInfo.label}</span>
+              </div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-body text-sm text-white/70">Undangan</span>
+                <span className="font-body text-sm text-white/60">{priceInfo.qty} pcs</span>
+              </div>
+              <div className="flex items-start justify-between mb-1">
+                <span className="font-body text-sm text-white/70">Rincian</span>
+                <span className="font-body text-sm text-white/60 text-right max-w-[200px]">{priceInfo.desc}</span>
+              </div>
+              <div className="h-px bg-gold/10 my-3" />
+              <div className="flex items-center justify-between">
+                <span className="font-body text-sm text-white/70 font-semibold">Total</span>
+                <span className="font-display text-xl text-gold">{formatRp(priceInfo.total)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Divider */}
+          <div className="h-px bg-white/5" />
+
           {/* Client Info */}
           <div className="space-y-4">
             <p className="font-body text-xs text-gold uppercase tracking-wider font-semibold">
@@ -228,10 +351,14 @@ function OrderFormContent() {
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || qtyNum < 1}
             className="w-full font-body text-sm font-semibold text-charcoal-dark bg-gold hover:bg-gold-light px-6 py-3.5 rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-gold/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
-            {loading ? "Mengirim..." : "Kirim Pesanan — Rp 299.000"}
+            {loading
+              ? "Mengirim..."
+              : qtyNum > 0
+                ? `Kirim Pesanan — ${formatRp(priceInfo.total)}`
+                : "Masukkan jumlah undangan dulu"}
           </button>
 
           <p className="font-body text-[10px] text-white/30 text-center">

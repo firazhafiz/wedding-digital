@@ -12,6 +12,9 @@ import type { EventInfo } from "@/types";
 export default function AdminEventsPage() {
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<EventInfo[]>([]);
+  const [eventStats, setEventStats] = useState<
+    Record<string, { total: number; attending: number }>
+  >({});
   const [showCreate, setShowCreate] = useState(false);
   const [newSlug, setNewSlug] = useState("");
   const [newTitle, setNewTitle] = useState("");
@@ -26,7 +29,32 @@ export default function AdminEventsPage() {
       .select("*")
       .order("updated_at", { ascending: false });
 
-    if (data) setEvents(data);
+    if (data) {
+      setEvents(data);
+
+      // Fetch stats for all events
+      const stats: Record<string, { total: number; attending: number }> = {};
+      await Promise.all(
+        data.map(async (event) => {
+          const [totalRes, attendingRes] = await Promise.all([
+            supabase
+              .from("guests")
+              .select("id", { count: "exact", head: true })
+              .eq("event_id", event.id),
+            supabase
+              .from("guests")
+              .select("id", { count: "exact", head: true })
+              .eq("event_id", event.id)
+              .eq("rsvp_status", "attending"),
+          ]);
+          stats[event.id] = {
+            total: totalRes.count || 0,
+            attending: attendingRes.count || 0,
+          };
+        }),
+      );
+      setEventStats(stats);
+    }
     setLoading(false);
   };
 
@@ -256,6 +284,28 @@ export default function AdminEventsPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Stats Badges */}
+              {eventStats[event.id] && (
+                <div className="flex gap-3 py-3">
+                  <div className="flex-1 text-center px-2 py-1.5 bg-gray-50 rounded-lg">
+                    <p className="text-[10px] font-bold uppercase text-charcoal-light/40 tracking-widest">
+                      Total Tamu
+                    </p>
+                    <p className="text-lg font-bold text-charcoal-dark">
+                      {eventStats[event.id].total}
+                    </p>
+                  </div>
+                  <div className="flex-1 text-center px-2 py-1.5 bg-emerald-50 rounded-lg">
+                    <p className="text-[10px] font-bold uppercase text-emerald-500/60 tracking-widest">
+                      Hadir
+                    </p>
+                    <p className="text-lg font-bold text-emerald-600">
+                      {eventStats[event.id].attending}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="pt-4 border-t border-gray-50 flex gap-2">
                 <Button

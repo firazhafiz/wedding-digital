@@ -23,8 +23,9 @@ export default function RsvpSection({
       ? (guest.rsvp_status as "attending" | "not_attending")
       : "",
   );
-  const [pax, setPax] = useState(guest.rsvp_pax || 1);
+  const [pax] = useState(guest.max_pax || 1);
   const [message, setMessage] = useState(guest.rsvp_message || "");
+  const [phoneNumber, setPhoneNumber] = useState(guest.phone_number || "");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(guest.rsvp_status !== "pending");
 
@@ -48,6 +49,7 @@ export default function RsvpSection({
           status,
           pax: status === "attending" ? pax : 0,
           message: message || undefined,
+          phone_number: phoneNumber || undefined,
         }),
       });
 
@@ -179,25 +181,14 @@ export default function RsvpSection({
               </div>
             </div>
 
-            {/* Jumlah tamu */}
+            {/* Info jumlah tamu */}
             {status === "attending" && (
-              <div>
-                <label className="block font-body text-xs tracking-[0.2em] uppercase text-charcoal-light mb-2">
-                  Jumlah Tamu ({guest.max_pax} maks.)
-                </label>
-                <select
-                  value={pax}
-                  onChange={(e) => setPax(Number(e.target.value))}
-                  className="w-full px-4 py-3 bg-transparent border border-gold/30 rounded-sm text-charcoal font-body focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold/30 transition-all duration-300"
-                >
-                  {Array.from({ length: guest.max_pax }, (_, i) => i + 1).map(
-                    (n) => (
-                      <option key={n} value={n}>
-                        {n} Orang
-                      </option>
-                    ),
-                  )}
-                </select>
+              <div className="px-4 py-3 bg-gold/5 border border-gold/20 rounded-sm">
+                <p className="font-body text-sm text-charcoal-dark text-center">
+                  <span className="text-gold">✦</span>{" "}
+                  Undangan ini berlaku untuk{" "}
+                  <span className="font-semibold text-gold">{guest.max_pax} orang</span>
+                </p>
               </div>
             )}
 
@@ -217,6 +208,20 @@ export default function RsvpSection({
               <p className="text-right font-body text-xs text-charcoal-light/50 mt-1">
                 {message.length}/500
               </p>
+            </div>
+
+            {/* No WhatsApp (Opsional) */}
+            <div>
+              <label className="block font-body text-xs tracking-[0.2em] uppercase text-charcoal-light mb-2">
+                No. WhatsApp (opsional)
+              </label>
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="08xxxxxxxxxx"
+                className="w-full px-4 py-3 bg-transparent border border-gold/30 rounded-sm text-charcoal font-body placeholder:text-charcoal-light/40 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold/30 transition-all duration-300"
+              />
             </div>
 
             {/* Submit */}

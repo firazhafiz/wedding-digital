@@ -17,10 +17,12 @@ export async function generateMetadata({ params }: PageProps) {
   const { event_slug, slug } = await params;
   const supabase = await createClient();
 
-  // Fetch event for metadata (hero_photo_url is the correct column name)
+  // Fetch event for metadata including custom SEO fields
   const { data: event } = await supabase
     .from("event_info")
-    .select("groom_name, bride_name, hero_photo_url")
+    .select(
+      "groom_name, bride_name, hero_photo_url, meta_title, meta_description, og_image_url",
+    )
     .eq("event_slug", event_slug)
     .single();
 
@@ -33,13 +35,16 @@ export async function generateMetadata({ params }: PageProps) {
     ? `${event.groom_name.split(" ")[0]} & ${event.bride_name.split(" ")[0]}`
     : "";
 
-  const title = coupleNames
-    ? `The Wedding of ${coupleNames}`
-    : "Wedding Invitation";
-  const ogTitle = coupleNames
-    ? `${title} - Spesial untuk ${guestName}`
-    : `Wedding Invitation - Spesial untuk ${guestName}`;
-  const description = `Special invitation for ${guestName}. You are cordially invited to celebrate our special day.`;
+  // Use custom SEO fields if set, otherwise auto-generate
+  const title =
+    event?.meta_title ||
+    (coupleNames ? `The Wedding of ${coupleNames}` : "Wedding Invitation");
+  const ogTitle = `${title} - Spesial untuk ${guestName}`;
+  const description =
+    event?.meta_description ||
+    `Undangan spesial untuk ${guestName}. Anda diundang untuk merayakan hari bahagia kami.`;
+  const ogImage =
+    event?.og_image_url || event?.hero_photo_url || "/assets/og-image.jpg";
 
   return {
     title: `${title} | ${guestName}`,
@@ -47,18 +52,14 @@ export async function generateMetadata({ params }: PageProps) {
     openGraph: {
       title: ogTitle,
       description,
-      images: event?.hero_photo_url
-        ? [event.hero_photo_url]
-        : ["/assets/og-image.jpg"],
+      images: [ogImage],
       type: "article",
     },
     twitter: {
       card: "summary_large_image",
       title: ogTitle,
       description,
-      images: event?.hero_photo_url
-        ? [event.hero_photo_url]
-        : ["/assets/og-image.jpg"],
+      images: [ogImage],
     },
   };
 }

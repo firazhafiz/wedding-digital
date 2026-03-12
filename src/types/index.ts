@@ -11,8 +11,10 @@ export interface Guest {
   rsvp_pax: number;
   rsvp_message: string | null;
   checked_in: boolean;
+  checked_in_count: number;
   checked_in_at: string | null;
   qr_token: string;
+  phone_number: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -89,6 +91,23 @@ export interface EventInfo {
 
   // Footer
   footer_text: string | null;
+
+  // SEO & Metadata
+  meta_title: string | null;
+  meta_description: string | null;
+  og_image_url: string | null;
+
+  // Analytics
+  ga_id: string | null;
+  pixel_id: string | null;
+
+  // Notifications
+  notification_email: string | null;
+
+  // WA Broadcast
+  wa_template: string | null;
+  wa_gateway_url: string | null;
+  wa_api_key: string | null;
 
   updated_at: string;
 }

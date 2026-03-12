@@ -23,7 +23,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const baseStyles =
-      "relative inline-flex items-center justify-center font-body font-medium tracking-wider uppercase transition-all duration-300 ease-premium focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 disabled:opacity-50 disabled:cursor-not-allowed";
+      "relative inline-flex items-center justify-center font-body font-medium tracking-wider uppercase whitespace-nowrap transition-all duration-300 ease-premium focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50 disabled:opacity-50 disabled:cursor-not-allowed";
 
     const variants = {
       primary:

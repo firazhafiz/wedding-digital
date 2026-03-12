@@ -1005,6 +1005,150 @@ export default function AdminSettingsPage() {
           </div>
         </section>
 
+        {/* SECTION 6: SEO & METADATA */}
+        <section className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-gray-50/5 px-6 py-4 border-b border-gray-100">
+            <h2 className="font-display text-lg text-charcoal-dark italic flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold"></span>
+              SEO & Social Media Preview
+            </h2>
+            <p className="text-[10px] text-charcoal-light/60 mt-1">
+              Atur judul & gambar yang muncul saat link undangan di-share ke
+              WhatsApp/Instagram
+            </p>
+          </div>
+          <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <label className="cms-label">Meta Title (Judul Preview)</label>
+              <input
+                type="text"
+                value={eventData.meta_title || ""}
+                onChange={(e) =>
+                  setEventData({ ...eventData, meta_title: e.target.value })
+                }
+                className="cms-input w-full"
+                placeholder="The Wedding of Anies & Cak Imin"
+              />
+              <p className="text-[10px] text-charcoal-light/40 mt-1 italic">
+                *Kosongkan untuk auto-generate dari nama mempelai
+              </p>
+            </div>
+            <div>
+              <label className="cms-label">OG Image URL (Gambar Preview)</label>
+              <input
+                type="text"
+                value={eventData.og_image_url || ""}
+                onChange={(e) =>
+                  setEventData({ ...eventData, og_image_url: e.target.value })
+                }
+                className="cms-input w-full"
+                placeholder="https://... (1200x630px recommended)"
+              />
+              <p className="text-[10px] text-charcoal-light/40 mt-1 italic">
+                *Kosongkan untuk menggunakan Hero Photo
+              </p>
+            </div>
+            <div className="md:col-span-2">
+              <label className="cms-label">
+                Meta Description (Deskripsi Preview)
+              </label>
+              <textarea
+                value={eventData.meta_description || ""}
+                onChange={(e) =>
+                  setEventData({
+                    ...eventData,
+                    meta_description: e.target.value,
+                  })
+                }
+                className="cms-input w-full h-20 resize-none"
+                placeholder="Anda diundang untuk merayakan hari bahagia kami..."
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 8: NOTIFICATIONS & WA BROADCAST */}
+        <section className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-gray-50/5 px-6 py-4 border-b border-gray-100">
+            <h2 className="font-display text-lg text-charcoal-dark italic flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold"></span>
+              Notifikasi & WhatsApp Broadcast
+            </h2>
+            <p className="text-[10px] text-charcoal-light/60 mt-1">
+              Terima notifikasi RSVP & atur template pesan broadcast
+            </p>
+          </div>
+          <div className="p-8 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <label className="cms-label">Email Notifikasi RSVP</label>
+                <input
+                  type="email"
+                  value={eventData.notification_email || ""}
+                  onChange={(e) =>
+                    setEventData({
+                      ...eventData,
+                      notification_email: e.target.value,
+                    })
+                  }
+                  className="cms-input w-full"
+                  placeholder="pengantin@email.com"
+                />
+                <p className="text-[10px] text-charcoal-light/40 mt-1 italic">
+                  *Email yang akan menerima pemberitahuan saat tamu mengisi RSVP
+                </p>
+              </div>
+              <div>
+                <label className="cms-label">
+                  Gateway WA (Fonnté) — Opsional
+                </label>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={eventData.wa_gateway_url || ""}
+                    onChange={(e) =>
+                      setEventData({
+                        ...eventData,
+                        wa_gateway_url: e.target.value,
+                      })
+                    }
+                    className="cms-input w-full"
+                    placeholder="https://api.fonnte.com/send"
+                  />
+                  <input
+                    type="text"
+                    value={eventData.wa_api_key || ""}
+                    onChange={(e) =>
+                      setEventData({ ...eventData, wa_api_key: e.target.value })
+                    }
+                    className="cms-input w-full"
+                    placeholder="API Key Fonnté"
+                  />
+                </div>
+                <p className="text-[10px] text-charcoal-light/40 mt-1 italic">
+                  *Hanya diisi jika ingin broadcast otomatis. Kosongkan untuk
+                  kirim manual.
+                </p>
+              </div>
+            </div>
+            <div>
+              <label className="cms-label">Template Pesan WhatsApp</label>
+              <textarea
+                value={eventData.wa_template || ""}
+                onChange={(e) =>
+                  setEventData({ ...eventData, wa_template: e.target.value })
+                }
+                className="cms-input w-full h-32 resize-none"
+                placeholder={`Assalamualaikum {{nama}},\n\nKami mengundang Bapak/Ibu/Saudara/i untuk menghadiri acara pernikahan kami.\n\nBuka undangan: {{link}}\n\nMohon konfirmasi kehadiran Anda. Terima kasih 🙏`}
+              />
+              <p className="text-[10px] text-charcoal-light/40 mt-1 italic">
+                *Gunakan {"{{nama}}"} untuk nama tamu dan {"{{link}}"} untuk
+                link undangan
+              </p>
+            </div>
+          </div>
+        </section>
+
         <div className="flex justify-end pt-6">
           <Button
             type="submit"

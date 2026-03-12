@@ -69,6 +69,7 @@ export const createGuestSchema = z.object({
     .min(1, "Minimal 1 pax")
     .max(20, "Maksimal 20 pax")
     .default(2),
+  phone_number: z.string().nullable().optional(),
 });
 
 export type CreateGuestInput = z.infer<typeof createGuestSchema>;

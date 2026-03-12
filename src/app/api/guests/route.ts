@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
         name: item.name,
         slug: item.slug || generateSlug(item.name),
         max_pax: item.max_pax || 2,
+        phone_number: item.phone_number || null,
         qr_token: item.qr_token || generateQrToken(),
         event_id: eventId,
       }));
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, max_pax, event_id } = result.data;
+    const { name, max_pax, event_id, phone_number } = result.data;
 
     // Unified auth check
     const session = await getAuthorizedSession(request, event_id);
@@ -131,6 +132,7 @@ export async function POST(request: NextRequest) {
         name,
         slug,
         max_pax,
+        phone_number: phone_number || null,
         qr_token: qrToken,
         event_id,
       })
