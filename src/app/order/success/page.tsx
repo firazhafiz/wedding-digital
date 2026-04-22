@@ -283,12 +283,6 @@ function SuccessContent() {
                   <path d="m12 5 7 7-7 7" />
                 </svg>
               </a>
-              <button
-                onClick={() => handleRefresh()}
-                className="text-[10px] font-body text-white/40 hover:text-white/60 transition-colors uppercase tracking-widest"
-              >
-                Sudah Bayar? Perbarui Status
-              </button>
             </div>
           ) : (
             <a
