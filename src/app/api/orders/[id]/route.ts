@@ -4,9 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 // GET: Check order status
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
   const supabase = await createClient();
 
   const { data: order, error } = await supabase
@@ -25,9 +25,9 @@ export async function GET(
 // DELETE: Cancel order
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
   const supabase = await createClient();
 
   // Only allowed to delete if strictly pending
