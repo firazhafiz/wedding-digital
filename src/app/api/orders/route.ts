@@ -98,11 +98,14 @@ export async function POST(request: Request) {
               payment_id: paymentId,
             })
             .eq("id", order.id);
+        } else {
+          console.error("Xendit Invoice Error:", xenditData);
         }
       } catch (err) {
-        console.error("Xendit API error:", err);
-        // We continue even if Xendit fails, user can still be followed up manually
+        console.error("Xendit API connection error:", err);
       }
+    } else {
+      console.warn("XENDIT_SECRET_KEY is missing. Check your environment variables.");
     }
 
     return NextResponse.json({ 

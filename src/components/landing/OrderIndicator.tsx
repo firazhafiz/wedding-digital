@@ -9,14 +9,36 @@ export default function OrderIndicator() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Small delay to ensure smooth entry
-    const checkOrder = () => {
+    const checkOrder = async () => {
       const savedId = localStorage.getItem("pendingOrderId");
-      if (savedId) {
+      if (!savedId) {
+        setIsVisible(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/orders/${savedId}`);
+        if (res.status === 404) {
+          // If order is deleted by admin, clear local storage
+          localStorage.removeItem("pendingOrderId");
+          localStorage.removeItem("pendingPaymentUrl");
+          setIsVisible(false);
+          return;
+        }
+
+        const result = await res.json();
+        if (result.data?.payment_status === "paid") {
+          // If order is already paid, clear local storage
+          localStorage.removeItem("pendingOrderId");
+          localStorage.removeItem("pendingPaymentUrl");
+          setIsVisible(false);
+          return;
+        }
+
         setOrderId(savedId);
         setIsVisible(true);
-      } else {
-        setIsVisible(false);
+      } catch (err) {
+        console.error("Indicator check error:", err);
       }
     };
 

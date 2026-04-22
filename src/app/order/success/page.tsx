@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
@@ -52,6 +52,8 @@ function SuccessContent() {
   const orderId = searchParams.get("id");
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (!orderId) {
@@ -67,6 +69,12 @@ function SuccessContent() {
         .eq("id", orderId)
         .single();
       if (data) {
+        // Fallback: If DB doesn't have payment_url yet, try local storage
+        if (!data.payment_url) {
+          const localUrl = localStorage.getItem("pendingPaymentUrl");
+          if (localUrl) data.payment_url = localUrl;
+        }
+
         setOrder(data);
         // Clear local storage if paid
         if (data.payment_status === "paid") {
@@ -78,6 +86,27 @@ function SuccessContent() {
     };
     fetchOrder();
   }, [orderId]);
+
+  const handleCancel = async () => {
+    if (!orderId || !confirm("Apakah Anda yakin ingin membatalkan pesanan ini?")) return;
+    
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, { method: "DELETE" });
+      if (res.ok) {
+        localStorage.removeItem("pendingOrderId");
+        localStorage.removeItem("pendingPaymentUrl");
+        router.push("/");
+      } else {
+        const err = await res.json();
+        alert(err.error || "Gagal membatalkan pesanan");
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan koneksi");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const waMessage = order
     ? encodeURIComponent(
@@ -225,6 +254,18 @@ function SuccessContent() {
             Kembali ke Beranda
           </Link>
         </div>
+
+        {order.payment_status !== "paid" && (
+          <div className="mt-12 pt-8 border-t border-white/5">
+            <button
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="font-body text-[10px] uppercase tracking-widest text-red-500/50 hover:text-red-500 transition-colors disabled:opacity-50"
+            >
+              {cancelling ? "Membatalkan..." : "Batalkan Pesanan & Hapus Keranjang"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
