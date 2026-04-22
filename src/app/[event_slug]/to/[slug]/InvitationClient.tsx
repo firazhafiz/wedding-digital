@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type {
   Guest,
   EventInfo,
@@ -11,7 +11,9 @@ import type {
 import SmoothScrollProvider from "../../../../components/providers/SmoothScrollProvider";
 import WelcomeScreen from "../../../../components/invitation/WelcomeScreen";
 import HeroSection from "../../../../components/invitation/HeroSection";
-import AudioPlayer from "../../../../components/invitation/AudioPlayer";
+import AudioPlayer, {
+  AudioPlayerHandle,
+} from "../../../../components/invitation/AudioPlayer";
 import AnalyticsScripts from "../../../../components/invitation/AnalyticsScripts";
 import CountdownSection from "../../../../components/invitation/CountdownSection";
 import CoupleSection from "../../../../components/invitation/CoupleSection";
@@ -40,11 +42,14 @@ export default function InvitationClient({
   guestbook: initialGuestbook,
 }: InvitationClientProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [audioReady, setAudioReady] = useState(false);
+  const audioRef = useRef<AudioPlayerHandle>(null);
 
   const handleOpen = () => {
     setIsOpen(true);
-    setAudioReady(true);
+    // Trigger audio directly in the click stack to bypass autoplay block
+    setTimeout(() => {
+      audioRef.current?.play();
+    }, 100);
   };
 
   return (
@@ -71,10 +76,10 @@ export default function InvitationClient({
         }
       >
         <SmoothScrollProvider enabled={isOpen}>
-          {/* Audio player (floating) */}
           <AudioPlayer
+            ref={audioRef}
             src={eventInfo?.audio_url || "/audio/wedding-music.mp3"}
-            autoPlay={audioReady}
+            autoPlay={false}
           />
           {/* Analytics (GA & Pixel) */}
           <AnalyticsScripts
@@ -91,6 +96,9 @@ export default function InvitationClient({
               <OrnamentalDivider variant="diamond" />
             </>
           )}
+          {/* RSVP */}
+          <RsvpSection guest={guest} eventId={eventInfo?.id} />
+
           {/* Couple / Mempelai */}
           <CoupleSection eventInfo={eventInfo} />
           {/* Joint Story & Gallery Section with Background */}
@@ -142,9 +150,7 @@ export default function InvitationClient({
               )}
             </div>
           </div>
-          {/* RSVP */}
-          <RsvpSection guest={guest} eventId={eventInfo?.id} />
-          <OrnamentalDivider variant="flourish" />
+
           {/* Guestbook */}
           {eventInfo?.show_guestbook !== false && (
             <>

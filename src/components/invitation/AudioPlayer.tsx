@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react";
 import { useAudio } from "@/hooks/useAudio";
 import { isYoutubeUrl, getYoutubeId } from "@/lib/utils";
 
@@ -7,11 +7,13 @@ interface AudioPlayerProps {
   autoPlay?: boolean;
 }
 
-export default function AudioPlayer({
-  src,
-  autoPlay = false,
-}: AudioPlayerProps) {
-  const [isYoutube, setIsYoutube] = useState(false);
+export interface AudioPlayerHandle {
+  play: () => void;
+}
+
+const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(
+  ({ src, autoPlay = false }, ref) => {
+    const [isYoutube, setIsYoutube] = useState(false);
   const [videoId, setVideoId] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [ytPlaying, setYtPlaying] = useState(false);
@@ -33,6 +35,22 @@ export default function AudioPlayer({
       setVideoId(getYoutubeId(src));
     }
   }, [src]);
+
+  // Expose play method to parent
+  useImperativeHandle(ref, () => ({
+    play: () => {
+      if (isYoutube) {
+        const player = iframeRef.current?.contentWindow;
+        player?.postMessage(
+          '{"event":"command","func":"playVideo","args":""}',
+          "*"
+        );
+        setYtPlaying(true);
+      } else {
+        playNative();
+      }
+    },
+  }));
 
   // Handle Play/Pause
   const isPlaying = isYoutube ? ytPlaying : nativePlaying;
@@ -124,4 +142,8 @@ export default function AudioPlayer({
       </button>
     </>
   );
-}
+});
+
+AudioPlayer.displayName = "AudioPlayer";
+
+export default AudioPlayer;

@@ -32,7 +32,7 @@ export async function verifyPassword(
 
 export interface ClientTokenPayload {
   clientId: string;
-  eventId: string;
+  eventId?: string;
   email: string;
   label: string;
 }

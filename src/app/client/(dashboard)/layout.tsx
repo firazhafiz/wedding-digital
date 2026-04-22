@@ -21,8 +21,16 @@ export default async function ClientLayout({
     redirect("/client/login");
   }
 
+  // Determine active event logic
+  const activeEventCookie = cookieStore.get("client_active_event")?.value;
+  const targetEventId = activeEventCookie || payload.eventId;
+
+  if (!targetEventId) {
+    redirect("/client/events");
+  }
+
   return (
-    <ClientShell eventId={payload.eventId} clientLabel={payload.label}>
+    <ClientShell eventId={targetEventId} clientLabel={payload.label}>
       {children}
     </ClientShell>
   );

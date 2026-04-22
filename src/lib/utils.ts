@@ -31,6 +31,30 @@ export function generateSlug(name: string): string {
 }
 
 // ============================================
+// Phone Number Display Formatting
+// ============================================
+
+/**
+ * Formats a phone number for consistent display.
+ * Handles various stored formats and normalizes to "08xxx" format.
+ * "81234567002"   → "081234567002"
+ * "6281234567002" → "081234567002"
+ * "081234567002"  → "081234567002"
+ * "+6281234567002"→ "081234567002"
+ */
+export function formatPhoneDisplay(phone: string | null | undefined): string {
+  if (!phone) return "";
+  let cleaned = phone.replace(/[^0-9]/g, "");
+  if (cleaned.startsWith("62")) {
+    cleaned = "0" + cleaned.slice(2);
+  }
+  if (!cleaned.startsWith("0")) {
+    cleaned = "0" + cleaned;
+  }
+  return cleaned;
+}
+
+// ============================================
 // OS Detection (for Maps CTA)
 // ============================================
 

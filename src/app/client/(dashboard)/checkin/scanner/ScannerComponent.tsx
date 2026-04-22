@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Html5QrcodeScanner, Html5QrcodeScanType } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeScanType } from "html5-qrcode";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useClientEventId } from "@/components/client/ClientEventContext";
 
 export default function ClientScannerComponent() {
   const router = useRouter();
-  const [isScanning, setIsScanning] = useState(true);
-  const [lastScanned, setLastScanned] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
   const [processing, setProcessing] = useState(false);
   const eventId = useClientEventId();
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const qrCodeInstanceRef = useRef<Html5Qrcode | null>(null);
+  const isProcessingRef = useRef(false);
+  const lastScannedRef = useRef<{ token: string; time: number } | null>(null);
   const [overrideData, setOverrideData] = useState<{
     qr_token: string;
     guest_name: string;
@@ -23,6 +24,7 @@ export default function ClientScannerComponent() {
   const handleOverride = async () => {
     if (!overrideData || !eventId) return;
     setProcessing(true);
+    isProcessingRef.current = true;
     try {
       const response = await fetch("/api/admin/checkin/scan", {
         method: "POST",
@@ -46,145 +48,21 @@ export default function ClientScannerComponent() {
     } finally {
       setOverrideData(null);
       setProcessing(false);
-      setLastScanned(null);
+      isProcessingRef.current = false;
       setIsScanning(true);
-      if (scannerRef.current) {
-        scannerRef.current.resume();
-      }
     }
   };
-
-  const handleScanSuccess = useCallback(
-    async (decodedText: string) => {
-      if (processing || decodedText === lastScanned) return;
-
-      setProcessing(true);
-      setLastScanned(decodedText);
-      setIsScanning(false);
-
-      if (scannerRef.current) {
-        scannerRef.current.pause(true);
-      }
-
-      try {
-        const response = await fetch("/api/admin/checkin/scan", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            qr_token: decodedText,
-            event_id: eventId,
-          }),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || "Gagal memproses QR code");
-        }
-
-        if (result.status === "success") {
-          toast.success(
-            `Check-in Lengkap: ${result.data?.guest_name} (${result.data?.checked_in_count}/${result.data?.total_pax} pax)`,
-            { duration: 3000 },
-          );
-          playBeep(800, 200);
-        } else if (result.status === "partial_checkin") {
-          toast.info(
-            `Scan ${result.data?.checked_in_count}/${result.data?.total_pax}: ${result.data?.guest_name} — masih tersisa ${result.data?.total_pax - result.data?.checked_in_count} pax`,
-            { duration: 3000 },
-          );
-          playBeep(600, 150);
-        } else if (result.status === "already_checked_in") {
-          toast.warning(
-            `Sudah penuh: ${result.data?.guest_name} (${result.data?.checked_in_count}/${result.data?.total_pax} pax)`,
-            { duration: 5000 },
-          );
-          playBeep(400, 400);
-          setOverrideData({
-            qr_token: decodedText,
-            guest_name: result.data?.guest_name,
-            checked_in_count: result.data?.checked_in_count,
-            total_pax: result.data?.total_pax,
-          });
-          return;
-        }
-      } catch (err: any) {
-        toast.error(err.message || "QR Code tidak valid", { duration: 3000 });
-        playBeep(200, 300);
-      } finally {
-        if (!overrideData) {
-          setTimeout(() => {
-            setLastScanned(null);
-            setProcessing(false);
-            setIsScanning(true);
-            if (scannerRef.current) {
-              scannerRef.current.resume();
-            }
-          }, 2000);
-        }
-      }
-    },
-    [processing, lastScanned, eventId],
-  );
-
-  const handleScanError = (errorMessage: string) => {
-    // Ignore frequent errors when no code is visible.
-  };
-
-  // Stable references for handlers to avoid re-initializing scanner
-  const onScanSuccessRef = useRef(handleScanSuccess);
-  onScanSuccessRef.current = handleScanSuccess;
-  const onScanErrorRef = useRef(handleScanError);
-  onScanErrorRef.current = handleScanError;
-
-  useEffect(() => {
-    if (!eventId) {
-      toast.error("Tidak ada event aktif");
-      router.push("/client");
-      return;
-    }
-
-    const scannerId = "qr-reader-client";
-
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-      scannerId,
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-        rememberLastUsedCamera: true,
-      },
-      false,
-    );
-
-    scannerRef.current = html5QrcodeScanner;
-
-    html5QrcodeScanner.render(
-      (text) => onScanSuccessRef.current(text),
-      (err) => onScanErrorRef.current(err),
-    );
-
-    return () => {
-      html5QrcodeScanner.clear().catch(console.error);
-    };
-  }, [eventId, router]);
 
   const playBeep = (frequency: number, duration: number) => {
     try {
-      const audioCtx = new (
-        window.AudioContext || (window as any).webkitAudioContext
-      )();
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
 
       oscillator.type = "sine";
       oscillator.frequency.value = frequency;
       gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.01,
-        audioCtx.currentTime + duration / 1000,
-      );
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration / 1000);
 
       oscillator.connect(gainNode);
       gainNode.connect(audioCtx.destination);
@@ -196,44 +74,153 @@ export default function ClientScannerComponent() {
     }
   };
 
-  return (
-    <div className="w-full max-w-md mx-auto relative rounded-lg overflow-hidden bg-black shadow-2xl">
-      <div id="qr-reader-client" className="w-full border-none"></div>
+  const handleScanSuccess = useCallback(async (decodedText: string) => {
+    const now = Date.now();
+    // Synchronous lock using Refs to prevent race conditions (multi-scan bug)
+    if (isProcessingRef.current || overrideData) return;
 
+    // Triple-check: prevent scanning the same token within 3 seconds
+    if (lastScannedRef.current && 
+        lastScannedRef.current.token === decodedText && 
+        now - lastScannedRef.current.time < 3000) {
+      return;
+    }
+
+    isProcessingRef.current = true;
+    lastScannedRef.current = { token: decodedText, time: now };
+
+    setProcessing(true);
+    setIsScanning(false);
+
+    try {
+      const response = await fetch("/api/admin/checkin/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          qr_token: decodedText,
+          event_id: eventId,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Gagal memproses QR code");
+      }
+
+      if (result.status === "success") {
+        toast.success(
+          `Check-in Lengkap: ${result.data?.guest_name} (${result.data?.checked_in_count}/${result.data?.total_pax} pax)`,
+          { duration: 3000 },
+        );
+        playBeep(800, 200);
+      } else if (result.status === "partial_checkin") {
+        toast.info(
+          `Scan ${result.data?.checked_in_count}/${result.data?.total_pax}: ${result.data?.guest_name}`,
+          { duration: 3000 },
+        );
+        playBeep(600, 150);
+      } else if (result.status === "already_checked_in") {
+        toast.warning(
+          `Sudah penuh: ${result.data?.guest_name}`,
+          { duration: 5000 },
+        );
+        playBeep(400, 400);
+        setOverrideData({
+          qr_token: decodedText,
+          guest_name: result.data?.guest_name,
+          checked_in_count: result.data?.checked_in_count,
+          total_pax: result.data?.total_pax,
+        });
+        return; 
+      }
+    } catch (err: any) {
+      toast.error(err.message || "QR Code tidak valid", { duration: 3000 });
+      playBeep(200, 300);
+    } finally {
+      // Keep isProcessingRef true until the timeout to ensure no double scans
+      if (!overrideData) {
+        setTimeout(() => {
+          setProcessing(false);
+          isProcessingRef.current = false;
+          setIsScanning(true);
+        }, 2500);
+      }
+    }
+  }, [overrideData, eventId]);
+
+  useEffect(() => {
+    if (!eventId) {
+      toast.error("Tidak ada event aktif");
+      router.push("/client");
+      return;
+    }
+
+    const scannerId = "qr-reader-client";
+    const html5QrCode = new Html5Qrcode(scannerId);
+    qrCodeInstanceRef.current = html5QrCode;
+
+    const startScanner = async () => {
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+          },
+          handleScanSuccess,
+          () => {} // Ignored error
+        );
+        setIsScanning(true);
+      } catch (err) {
+        console.error("Scanner start error:", err);
+        toast.error("Gagal mengakses kamera");
+      }
+    };
+
+    startScanner();
+
+    return () => {
+      if (qrCodeInstanceRef.current?.isScanning) {
+        qrCodeInstanceRef.current.stop()
+          .then(() => qrCodeInstanceRef.current?.clear())
+          .catch(console.error);
+      }
+    };
+  }, [eventId, router, handleScanSuccess]);
+
+  return (
+    <div className="w-full max-w-md mx-auto relative rounded-lg overflow-hidden bg-black shadow-2xl aspect-square">
+      <div id="qr-reader-client" className="w-full h-full border-none [&_video]:object-cover"></div>
+
+      {/* Overlay Status */}
       <div
-        className={`absolute inset-0 z-10 pointer-events-none transition-opacity duration-300 ${isScanning ? "opacity-0" : "opacity-100 bg-black/60"} flex items-center justify-center`}
+        className={`absolute inset-0 z-10 pointer-events-none transition-opacity duration-300 ${isScanning ? "opacity-0" : processing && !overrideData ? "opacity-100 bg-black/40" : "opacity-0"} flex items-center justify-center`}
       >
         {processing && !overrideData && (
           <div className="bg-white px-6 py-3 rounded-full font-body text-sm font-medium text-charcoal shadow-lg flex items-center gap-3">
-            <svg
-              className="animate-spin h-5 w-5 text-blue-500"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
+            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             Memproses...
           </div>
         )}
       </div>
 
+      {/* Scan Frame (Visual Aid) */}
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+        <div className="w-[250px] h-[250px] border-2 border-white/30 rounded-lg relative">
+          <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-blue-500 rounded-tl"></div>
+          <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-blue-500 rounded-tr"></div>
+          <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-blue-500 rounded-bl"></div>
+          <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-blue-500 rounded-br"></div>
+          
+          <div className="absolute inset-0 bg-blue-500/10 animate-pulse"></div>
+        </div>
+      </div>
+
       {/* Override Dialog */}
       {overrideData && (
         <div className="absolute inset-0 z-20 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full text-center shadow-2xl">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full text-center shadow-2xl animate-in zoom-in duration-200">
             <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center rounded-full bg-amber-100">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
@@ -244,20 +231,18 @@ export default function ClientScannerComponent() {
             <h3 className="font-body font-semibold text-charcoal-dark text-base mb-1">
               Undangan Sudah Penuh
             </h3>
-            <p className="font-body text-sm text-charcoal-light mb-1">
-              <span className="font-semibold">{overrideData.guest_name}</span>
+            <p className="font-body text-sm text-charcoal-light mb-1 font-semibold">
+              {overrideData.guest_name}
             </p>
             <p className="font-body text-xs text-charcoal-light mb-4">
-              Undangan untuk {overrideData.total_pax} orang, sudah {overrideData.checked_in_count}× scan.
+              {overrideData.total_pax} orang, sudah {overrideData.checked_in_count}× scan.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => {
                   setOverrideData(null);
                   setProcessing(false);
-                  setLastScanned(null);
                   setIsScanning(true);
-                  if (scannerRef.current) scannerRef.current.resume();
                 }}
                 className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg font-body text-sm text-charcoal-light hover:bg-gray-50 transition-colors"
               >

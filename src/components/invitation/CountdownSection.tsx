@@ -55,7 +55,6 @@ export default function CountdownSection({ eventInfo }: CountdownSectionProps) {
   return (
     <section ref={sectionRef} className="py-16 lg:py-24 px-6 bg-off-white">
       <div className="max-w-4xl mx-auto text-center">
-        {/* Section title */}
         <p className="font-body text-charcoal-light text-xs tracking-[0.3em] uppercase mb-3">
           Save The Date
         </p>
@@ -63,7 +62,6 @@ export default function CountdownSection({ eventInfo }: CountdownSectionProps) {
           Menghitung Hari
         </h2>
 
-        {/* Countdown */}
         {!isExpired ? (
           <div className="flex items-center justify-center gap-3 md:gap-6 mb-8">
             <CountdownUnit value={days} label="Hari" />
@@ -88,7 +86,6 @@ export default function CountdownSection({ eventInfo }: CountdownSectionProps) {
           </div>
         )}
 
-        {/* Add to Calendar Button */}
         {eventInfo?.akad_date && (
           <div className="mb-16">
             <button
@@ -128,7 +125,6 @@ export default function CountdownSection({ eventInfo }: CountdownSectionProps) {
           </div>
         )}
 
-        {/* Schedule Cards */}
         <div
           ref={scheduleRef}
           className={cn(
@@ -138,9 +134,8 @@ export default function CountdownSection({ eventInfo }: CountdownSectionProps) {
               : "md:grid-cols-1 max-w-md",
           )}
         >
-          {/* Akad */}
           {showAkad && (
-            <div className="flex flex-col items-center text-center p-4 md:p-10 md:gold-gradient-border md:rounded-sm md:bg-white/60 md:backdrop-blur-sm md:shadow-xs relative">
+            <div className="flex flex-col items-center text-center p-4 md:p-10 border border-gold/80 md:rounded-sm md:bg-white/60 md:backdrop-blur-sm relative">
               <p className="font-body text-xs tracking-[0.25em] uppercase text-charcoal-light mb-3">
                 Akad Nikah
               </p>
@@ -174,16 +169,14 @@ export default function CountdownSection({ eventInfo }: CountdownSectionProps) {
                 </Button>
               )}
 
-              {/* Mobile Divider */}
               {showResepsi && (
                 <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-24 h-px bg-gold/20 md:hidden" />
               )}
             </div>
           )}
 
-          {/* Resepsi */}
           {showResepsi && (
-            <div className="flex flex-col items-center text-center p-4 md:p-10 md:gold-gradient-border md:rounded-sm md:bg-white/60 md:backdrop-blur-sm md:shadow-xs">
+            <div className="flex flex-col items-center text-center p-4 md:p-10 border border-gold/80 md:rounded-sm md:bg-white/60 md:backdrop-blur-sm">
               <p className="font-body text-xs tracking-[0.25em] uppercase text-charcoal-light mb-3">
                 Resepsi
               </p>

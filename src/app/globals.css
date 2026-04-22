@@ -265,3 +265,27 @@
     height: 100%;
   }
 }
+@layer components {
+  .cms-label {
+    @apply block text-[10px] font-bold uppercase tracking-wider text-charcoal-light mb-2;
+  }
+
+  .cms-label-xs {
+    @apply block text-[10px] font-bold uppercase text-gray-400 mb-1;
+  }
+
+  .cms-input {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-md text-[15px] font-body text-charcoal-dark 
+      bg-transparent shadow-none transition-all duration-200 outline-none
+      focus:border-gold focus:ring-0 focus:shadow-none
+      flex items-center leading-normal;
+  }
+
+  input.cms-input, 
+  textarea.cms-input, 
+  select.cms-input {
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+  }
+}

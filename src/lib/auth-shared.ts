@@ -32,15 +32,43 @@ export async function getAuthorizedSession(
   if (token) {
     try {
       const payload = await verifyClientToken(token);
-      if (payload && payload.eventId) {
-        // If a targetEventId is provided, ensure the client's token matches it
-        if (targetEventId && payload.eventId !== targetEventId) {
-          return null;
+      if (payload) {
+        // If a targetEventId is provided, we must verify ownership!
+        if (targetEventId) {
+          // If token has legacy strict eventId match
+          if (payload.eventId === targetEventId) {
+            return {
+              isAdmin: false,
+              isClient: true,
+              eventId: targetEventId,
+              email: payload.email as string,
+            };
+          }
+
+          // Otherwise, check if this email owns the target event
+          if (payload.email) {
+            const { data: eventOwner } = await supabase
+              .from("event_info")
+              .select("client_email")
+              .eq("id", targetEventId)
+              .single();
+
+            if (eventOwner && eventOwner.client_email === payload.email) {
+              return {
+                isAdmin: false,
+                isClient: true,
+                eventId: targetEventId,
+                email: payload.email as string,
+              };
+            }
+          }
+          return null; // Denied: event doesn't belong to this email
         }
+
+        // If no targetEventId requested, just return the authenticated state
         return {
           isAdmin: false,
           isClient: true,
-          eventId: payload.eventId as string,
           email: payload.email as string,
         };
       }

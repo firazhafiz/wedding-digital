@@ -33,10 +33,16 @@ function formatRp(amount: number) {
 }
 
 function getPackageName(type: string) {
-  if (type === "satuan") return "Satuan";
-  if (type === "bundling") return "Bundling";
-  if (type === "combine") return "Combine";
-  return type;
+  const labels: Record<string, string> = {
+    basic: "Basic",
+    pro: "Pro",
+    exclusive: "Exclusive",
+    custom: "Custom",
+    satuan: "Satuan (Legacy)",
+    bundling: "Bundling (Legacy)",
+    combine: "Combine (Legacy)",
+  };
+  return labels[type] || type.charAt(0).toUpperCase() + type.slice(1);
 }
 
 function SuccessContent() {

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       .from("guests")
       .select("*")
       .eq("event_id", eventId)
-      .order("created_at", { ascending: false });
+      .order("name", { ascending: true });
 
     const rsvpStatus = searchParams.get("rsvp_status");
     if (rsvpStatus) {
@@ -58,6 +58,56 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    const supabase = createAdminClient();
+
+    // 1. Fetch Event Quota Info
+    const eventIdForQuota = Array.isArray(body) ? body[0]?.event_id : body.event_id;
+    if (!eventIdForQuota) {
+      return NextResponse.json({ error: "event_id diperlukan" }, { status: 400 });
+    }
+
+    const { data: eventInfo, error: quotaError } = await supabase
+      .from("event_info")
+      .select("guest_limit")
+      .eq("id", eventIdForQuota)
+      .single();
+
+    let limit = 100; // Default fallback
+
+    if (quotaError) {
+      // If it fails because column doesn't exist, we fallback
+      if (quotaError.message.includes("column") && quotaError.message.includes("does not exist")) {
+        console.warn("DB schema guest_limit missing, falling back to 100");
+      } else {
+        return NextResponse.json({ error: quotaError.message || "Gagal memverifikasi kuota event" }, { status: 404 });
+      }
+    } else if (eventInfo) {
+      limit = eventInfo.guest_limit || 100;
+    }
+
+    // 2. Count Current Guests
+    const { count: currentCount, error: countError } = await supabase
+      .from("guests")
+      .select("*", { count: "exact", head: true })
+      .eq("event_id", eventIdForQuota);
+
+    if (countError) {
+      return NextResponse.json({ error: "Gagal memverifikasi jumlah tamu" }, { status: 500 });
+    }
+
+    const currentNum = currentCount || 0;
+    const incomingNum = Array.isArray(body) ? body.length : 1;
+
+    // 3. Check Quota
+    if (currentNum + incomingNum > limit) {
+      return NextResponse.json({ 
+        error: `Kuota tamu penuh. Paket Anda terbatas ${limit} tamu.`,
+        current: currentNum,
+        limit: limit,
+        requested: incomingNum
+      }, { status: 403 });
+    }
+
     // Check if bulk insert (array)
     if (Array.isArray(body)) {
       if (body.length === 0) {
@@ -65,13 +115,6 @@ export async function POST(request: NextRequest) {
       }
 
       const eventId = body[0].event_id;
-      if (!eventId) {
-        return NextResponse.json(
-          { error: "event_id diperlukan" },
-          { status: 400 },
-        );
-      }
-
       // Unified auth check for the batch
       const session = await getAuthorizedSession(request, eventId);
       if (!session) {
@@ -88,7 +131,6 @@ export async function POST(request: NextRequest) {
         event_id: eventId,
       }));
 
-      const supabase = createAdminClient();
       const { data, error } = await supabase
         .from("guests")
         .insert(guestsToInsert)
@@ -120,8 +162,6 @@ export async function POST(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const supabase = createAdminClient();
 
     const slug = generateSlug(name);
     const qrToken = generateQrToken();

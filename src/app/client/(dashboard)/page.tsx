@@ -5,6 +5,7 @@ import { verifyClientToken } from "@/lib/client/auth";
 import { CLIENT_COOKIE_NAME } from "@/lib/client/context";
 import StatsCard from "@/components/admin/StatsCard";
 import type { GuestbookEntry } from "@/types";
+import { cn } from "@/lib/utils";
 
 async function getClientDashboardData() {
   const cookieStore = await cookies();
@@ -18,7 +19,7 @@ async function getClientDashboardData() {
 
   const { data: eventInfo } = await supabase
     .from("event_info")
-    .select("id, event_slug, groom_name, bride_name")
+    .select("id, event_slug, groom_name, bride_name, package_type, guest_limit")
     .eq("id", payload.eventId)
     .single();
 
@@ -51,6 +52,8 @@ async function getClientDashboardData() {
     ),
     recentGuestbook: (recentGuestbook || []) as GuestbookEntry[],
     eventSlug: eventInfo.event_slug,
+    guestLimit: eventInfo.guest_limit || 100,
+    packageType: eventInfo.package_type || "basic",
   };
 }
 
@@ -150,66 +153,103 @@ export default async function ClientDashboardPage() {
 
       {/* RSVP Breakdown + Recent Guestbook */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* RSVP Bar */}
-        <div className="bg-white rounded-lg border border-gray-100 p-6">
-          <h3 className="font-body text-sm font-semibold text-charcoal-dark mb-4">
-            Status RSVP
-          </h3>
-          <div className="space-y-3">
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="font-body text-xs text-charcoal-light">
-                  Hadir
-                </span>
-                <span className="font-body text-xs font-medium text-charcoal">
-                  {stats.attending}
-                </span>
+        {/* RSVP Bar + Quota */}
+        <div className="bg-white rounded-lg border border-gray-100 p-6 space-y-8">
+          <div>
+            <h3 className="font-body text-sm font-semibold text-charcoal-dark mb-4">
+              Status RSVP
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="font-body text-xs text-charcoal-light">
+                    Hadir
+                  </span>
+                  <span className="font-body text-xs font-medium text-charcoal">
+                    {stats.attending}
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${stats.totalGuests ? (stats.attending / stats.totalGuests) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
               </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-400 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${stats.totalGuests ? (stats.attending / stats.totalGuests) * 100 : 0}%`,
-                  }}
-                />
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="font-body text-xs text-charcoal-light">
+                    Tidak Hadir
+                  </span>
+                  <span className="font-body text-xs font-medium text-charcoal">
+                    {stats.notAttending}
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-red-400 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${stats.totalGuests ? (stats.notAttending / stats.totalGuests) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="font-body text-xs text-charcoal-light">
+                    Pending
+                  </span>
+                  <span className="font-body text-xs font-medium text-charcoal">
+                    {stats.pending}
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${stats.totalGuests ? (stats.pending / stats.totalGuests) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
               </div>
             </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="font-body text-xs text-charcoal-light">
-                  Tidak Hadir
-                </span>
-                <span className="font-body text-xs font-medium text-charcoal">
-                  {stats.notAttending}
-                </span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-red-400 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${stats.totalGuests ? (stats.notAttending / stats.totalGuests) * 100 : 0}%`,
-                  }}
-                />
-              </div>
+          </div>
+
+          <div className="pt-6 border-t border-gray-50">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-body text-sm font-semibold text-charcoal-dark">
+                Kuota Tamu
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gold/10 text-gold-dark uppercase tracking-wider">
+                Paket {stats.packageType}
+              </span>
             </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="font-body text-xs text-charcoal-light">
-                  Pending
-                </span>
-                <span className="font-body text-xs font-medium text-charcoal">
-                  {stats.pending}
-                </span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-amber-400 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${stats.totalGuests ? (stats.pending / stats.totalGuests) * 100 : 0}%`,
-                  }}
-                />
-              </div>
+            <div className="flex justify-between mb-1.5">
+              <span className="font-body text-xs text-charcoal-light">
+                Terpakai: <span className="text-charcoal font-medium">{stats.totalGuests}</span>
+              </span>
+              <span className="font-body text-xs text-charcoal-light">
+                Limit: <span className="text-charcoal font-medium">{stats.guestLimit}</span>
+              </span>
             </div>
+            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all duration-1000",
+                  stats.totalGuests >= stats.guestLimit ? "bg-red-500" : "bg-gold"
+                )}
+                style={{
+                  width: `${Math.min((stats.totalGuests / stats.guestLimit) * 100, 100)}%`,
+                }}
+              />
+            </div>
+            {stats.totalGuests >= stats.guestLimit && (
+              <p className="mt-2 font-body text-[10px] text-red-500 italic">
+                *Kuota Anda sudah penuh. Hubungi admin untuk upgrade.
+              </p>
+            )}
           </div>
         </div>
 

@@ -24,14 +24,47 @@ interface OrderRequest {
   created_at: string;
 }
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  pending: { label: "Menunggu", color: "bg-yellow-100 text-yellow-700" },
-  contacted: { label: "Dihubungi", color: "bg-blue-100 text-blue-700" },
+const statusConfig = {
+  pending: {
+    label: "Menunggu",
+    color: "bg-amber-50 text-amber-600 border-amber-200/50",
+    hover: "hover:bg-amber-100",
+    icon: (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+      </svg>
+    )
+  },
+  contacted: {
+    label: "Dihubungi",
+    color: "bg-blue-50 text-blue-600 border-blue-200/50",
+    hover: "hover:bg-blue-100",
+    icon: (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+    )
+  },
   confirmed: {
     label: "Dikonfirmasi",
-    color: "bg-emerald-100 text-emerald-700",
+    color: "bg-emerald-50 text-emerald-600 border-emerald-200/50",
+    hover: "hover:bg-emerald-100",
+    icon: (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    )
   },
-  rejected: { label: "Ditolak", color: "bg-red-100 text-red-700" },
+  rejected: {
+    label: "Ditolak",
+    color: "bg-rose-50 text-rose-600 border-rose-200/50",
+    hover: "hover:bg-rose-100",
+    icon: (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+      </svg>
+    )
+  },
 };
 
 function formatRp(amount: number) {
@@ -44,10 +77,114 @@ function formatRp(amount: number) {
 }
 
 function getPackageLabel(type: string) {
-  if (type === "satuan") return "Satuan";
-  if (type === "bundling") return "Bundling";
-  if (type === "combine") return "Combine";
-  return type.charAt(0).toUpperCase() + type.slice(1);
+  const labels: Record<string, string> = {
+    basic: "Basic",
+    pro: "Pro",
+    exclusive: "Exclusive",
+    custom: "Custom",
+    satuan: "Satuan (Legacy)",
+    bundling: "Bundling (Legacy)",
+    combine: "Combine (Legacy)",
+  };
+  return labels[type] || type.charAt(0).toUpperCase() + type.slice(1);
+}
+
+function WaButton({ request: r }: { request: OrderRequest }) {
+  return (
+    <a
+      href={`https://wa.me/62${r.client_phone.replace(/^0/, "")}?text=${encodeURIComponent(`Halo ${r.client_name}, terima kasih telah memesan undangan digital di akadigital. Saya ingin mengkonfirmasi pesanan Anda untuk undangan ${r.groom_name} & ${r.bride_name}.`)}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-body font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-200 transition-all active:scale-[0.98]"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.067 2.877 1.215 3.076.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+      </svg>
+      WA Client
+    </a>
+  );
+}
+
+function StatusDropdown({
+  request: r,
+  onStatusChange,
+}: {
+  request: OrderRequest;
+  onStatusChange: (newStatus: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const config = statusConfig[r.status as keyof typeof statusConfig] || statusConfig.pending;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClick = () => setIsOpen(false);
+    window.addEventListener("click", handleClick);
+    return () => window.removeEventListener("click", handleClick);
+  }, [isOpen]);
+
+  return (
+    <div className="relative" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border transition-all duration-200 outline-none w-full min-w-[140px] justify-between",
+          config.color,
+          config.hover,
+          isOpen ? "ring-2 ring-offset-1 ring-emerald-100" : "shadow-sm"
+        )}
+      >
+        <div className="flex items-center gap-2">
+          {config.icon}
+          {config.label}
+        </div>
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          className={cn("transition-transform duration-200", isOpen && "rotate-180")}
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-2 w-full min-w-[160px] bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="p-1.5 flex flex-col gap-1">
+            {Object.entries(statusConfig).map(([key, cfg]) => (
+              <button
+                key={key}
+                onClick={() => {
+                  onStatusChange(key);
+                  setIsOpen(false);
+                }}
+                className={cn(
+                  "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150 w-full text-left",
+                  r.status === key
+                    ? cfg.color
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                )}
+              >
+                <div className={cn("p-1 rounded-md", r.status === key ? "bg-white/50" : "bg-gray-100/50")}>
+                  {cfg.icon}
+                </div>
+                {cfg.label}
+                {r.status === key && (
+                  <div className="ml-auto">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AdminRequestsPage() {
@@ -125,8 +262,28 @@ export default function AdminRequestsPage() {
       
       const groomFirstName = req.groom_name.trim().split(/\s+/)[0] || "groom";
       const brideFirstName = req.bride_name.trim().split(/\s+/)[0] || "bride";
-      const slug = `${groomFirstName}-${brideFirstName}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      let slug = `${groomFirstName}-${brideFirstName}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       
+      // Check for slug collision
+      const { data: existingEvent } = await supabase
+        .from('event_info')
+        .select('id')
+        .eq('event_slug', slug)
+        .maybeSingle();
+
+      if (existingEvent) {
+        // Append a random 3-char suffix if collision
+        const suffix = Math.random().toString(36).substring(2, 5);
+        slug = `${slug}-${suffix}`;
+      }
+
+      // Determine guest limit based on package tier
+      let guestLimit = req.guest_qty || 0;
+      if (req.package_type === "basic") guestLimit = 100;
+      else if (req.package_type === "pro") guestLimit = 300;
+      else if (req.package_type === "exclusive") guestLimit = 500;
+      else if (req.package_type === "custom") guestLimit = req.guest_qty || 500;
+
       const { data: eventData, error: eventError } = await supabase
         .from('event_info')
         .insert({
@@ -134,6 +291,8 @@ export default function AdminRequestsPage() {
           event_slug: slug,
           groom_name: req.groom_name,
           bride_name: req.bride_name,
+          package_type: req.package_type,
+          guest_limit: guestLimit,
         })
         .select()
         .single();
@@ -169,7 +328,7 @@ export default function AdminRequestsPage() {
 
         {/* Filter */}
         <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 overflow-x-auto hide-scrollbar w-full sm:w-fit sm:flex-wrap">
-          {["all", ...Object.keys(statusLabels)].map((f) => (
+          {["all", ...Object.keys(statusConfig)].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -179,7 +338,7 @@ export default function AdminRequestsPage() {
                   : "text-charcoal-light hover:text-charcoal"
               }`}
             >
-              {f === "all" ? "Semua" : statusLabels[f]?.label || f}
+              {f === "all" ? "Semua" : (statusConfig[f as keyof typeof statusConfig]?.label || f)}
             </button>
           ))}
         </div>
@@ -211,9 +370,13 @@ export default function AdminRequestsPage() {
                       {r.groom_name} & {r.bride_name}
                     </h3>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusLabels[r.status]?.color || "bg-gray-100 text-gray-600"}`}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border",
+                        statusConfig[r.status as keyof typeof statusConfig]?.color || "bg-gray-100 text-gray-600 border-gray-200"
+                      )}
                     >
-                      {statusLabels[r.status]?.label || r.status}
+                      {statusConfig[r.status as keyof typeof statusConfig]?.icon}
+                      {statusConfig[r.status as keyof typeof statusConfig]?.label || r.status}
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gold/10 text-gold">
                       {getPackageLabel(r.package_type)}
@@ -305,43 +468,12 @@ export default function AdminRequestsPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <a
-                    href={`https://wa.me/62${r.client_phone.replace(/^0/, "")}?text=${encodeURIComponent(`Halo ${r.client_name}, terima kasih telah memesan undangan digital di akadigital. Saya ingin mengkonfirmasi pesanan Anda untuk undangan ${r.groom_name} & ${r.bride_name}.`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-md text-xs font-body font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-                  >
-                    WA Client
-                  </a>
-                  <div className="relative group/select min-w-[130px]">
-                    <select
-                      value={r.status}
-                      onChange={(e) => handleStatusChange(r, e.target.value)}
-                      className={cn(
-                        "appearance-none w-full px-3 py-1.5 pr-8 rounded-md text-[11px] font-body font-semibold border-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all",
-                        statusLabels[r.status]?.color ||
-                          "bg-gray-100 text-gray-700",
-                      )}
-                    >
-                      <option value="pending">Menunggu</option>
-                      <option value="contacted">Dihubungi</option>
-                      <option value="confirmed">Dikonfirmasi</option>
-                      <option value="rejected">Ditolak</option>
-                    </select>
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-current opacity-60">
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                      >
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <WaButton request={r} />
+                  <StatusDropdown 
+                    request={r} 
+                    onStatusChange={(newStatus) => handleStatusChange(r, newStatus)} 
+                  />
                 </div>
               </div>
             </div>

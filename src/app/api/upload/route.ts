@@ -1,8 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthorizedSession } from "@/lib/auth-shared";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // 1. Basic security: require ANY valid session (admin or client) to upload files
+    const session = await getAuthorizedSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized upload attempt" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const bucket = (formData.get("bucket") as string) || "uploads";

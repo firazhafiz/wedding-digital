@@ -152,13 +152,13 @@ export default function AdminShell({
     const fetchActiveEvent = async () => {
       const eventId = getActiveEventId();
 
-      // If we are not on the events page and have no active event, redirect to katalog
-      if (
-        !eventId &&
-        pathname !== "/admin/events" &&
-        pathname !== "/admin/login" &&
-        pathname !== "/admin/requests"
-      ) {
+      // If we are not on management pages and have no active event, redirect to katalog
+      const isManagementPage = 
+        pathname === "/admin/events" || 
+        pathname === "/admin/login" || 
+        pathname === "/admin/requests";
+
+      if (!eventId && !isManagementPage) {
         router.push("/admin/events");
         return;
       }
@@ -172,9 +172,12 @@ export default function AdminShell({
           .single();
         if (data) {
           setActiveEvent(data as EventInfo);
-        } else if (pathname !== "/admin/events") {
-          // If event was deleted or not found but we have a cookie, clear it and redirect
-          router.push("/admin/events");
+        } else {
+          // If event was deleted or not found but we have a cookie, clear it
+          clearActiveEventId();
+          if (!isManagementPage) {
+            router.push("/admin/events");
+          }
         }
       }
     };

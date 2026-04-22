@@ -6,7 +6,11 @@ import { toast } from "sonner";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { setActiveEventId } from "@/lib/admin/context";
+import {
+  setActiveEventId,
+  getActiveEventId,
+  clearActiveEventId,
+} from "@/lib/admin/context";
 import type { EventInfo } from "@/types";
 
 export default function AdminEventsPage() {
@@ -18,7 +22,16 @@ export default function AdminEventsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newSlug, setNewSlug] = useState("");
   const [newTitle, setNewTitle] = useState("");
+  const [newPackage, setNewPackage] = useState("basic");
+  const [showPackageDropdown, setShowPackageDropdown] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const packageOptions = [
+    { value: "basic", label: "Basic", desc: "Maksimal 100 Tamu" },
+    { value: "pro", label: "Pro", desc: "Maksimal 300 Tamu" },
+    { value: "exclusive", label: "Exclusive", desc: "Maksimal 500 Tamu" },
+    { value: "custom", label: "Custom", desc: "Tamu Tanpa Batas / Unlimited" },
+  ];
   const router = useRouter();
   const supabase = createClient();
 
@@ -76,15 +89,19 @@ export default function AdminEventsPage() {
       return;
     }
 
-    // Create default event
-    const { data, error } = await supabase
-      .from("event_info")
-      .insert({
-        user_id: user.id, // Important for RLS
-        event_slug: newSlug.toLowerCase().replace(/\s+/g, "-"),
-        groom_name: newTitle.split("&")[0]?.trim() || "Groom",
-        bride_name: newTitle.split("&")[1]?.trim() || "Bride",
-      })
+      const limits = { basic: 100, pro: 300, exclusive: 500, custom: 9999 };
+      const guestLimit = limits[newPackage as keyof typeof limits] || 100;
+
+      const { data, error } = await supabase
+        .from("event_info")
+        .insert({
+          user_id: user.id, // Important for RLS
+          event_slug: newSlug.toLowerCase().replace(/\s+/g, "-"),
+          groom_name: newTitle.split("&")[0]?.trim() || "Groom",
+          bride_name: newTitle.split("&")[1]?.trim() || "Bride",
+          package_type: newPackage,
+          guest_limit: guestLimit,
+        })
       .select()
       .single();
 
@@ -107,12 +124,8 @@ export default function AdminEventsPage() {
         onClick: async () => {
           setDeletingId(eventId);
 
-          // Delete related data first (cascade)
           await supabase.from("guests").delete().eq("event_id", eventId);
-          await supabase
-            .from("guestbook_entries")
-            .delete()
-            .eq("event_id", eventId);
+          await supabase.from("guestbook").delete().eq("event_id", eventId);
 
           const { error } = await supabase
             .from("event_info")
@@ -123,6 +136,9 @@ export default function AdminEventsPage() {
             toast.error("Gagal menghapus event: " + error.message);
           } else {
             toast.success("Event berhasil dihapus!");
+            if (getActiveEventId() === eventId) {
+              clearActiveEventId();
+            }
             fetchEvents();
           }
           setDeletingId(null);
@@ -153,7 +169,9 @@ export default function AdminEventsPage() {
             Daftar semua project undangan yang Anda kelola
           </p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>Buat Undangan</Button>
+        <Button onClick={() => setShowCreate(true)} className="shadow-none!">
+          Buat Undangan
+        </Button>
       </div>
 
       {showCreate && (
@@ -194,6 +212,57 @@ export default function AdminEventsPage() {
                 />
               </div>
             </div>
+            <div className="relative">
+              <label className="block text-xs font-semibold text-charcoal-light mb-1.5 uppercase tracking-tighter">
+                Paket Event
+              </label>
+              
+              <div 
+                onClick={() => setShowPackageDropdown(!showPackageDropdown)}
+                className="cms-input w-full flex justify-between items-center cursor-pointer bg-white group hover:border-gold/30"
+              >
+                <span>
+                  {packageOptions.find(p => p.value === newPackage)?.label}
+                  <span className="text-gray-400 text-xs ml-2 font-normal">
+                    ({packageOptions.find(p => p.value === newPackage)?.desc})
+                  </span>
+                </span>
+                <svg 
+                  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" 
+                  className={`text-gray-400 transition-transform duration-200 group-hover:text-gold ${showPackageDropdown ? "rotate-180 text-gold" : ""}`}
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+
+              {showPackageDropdown && (
+                <>
+                  {/* Invisible Overlay for click-outside */}
+                  <div className="fixed inset-0 z-40" onClick={() => setShowPackageDropdown(false)} />
+                  
+                  {/* Dropdown Menu */}
+                  <div className="absolute top-[calc(100%+8px)] left-0 w-full bg-white border border-gray-100 rounded-lg shadow-xl shadow-gray-200/50 z-50 overflow-hidden py-1 animate-fade-in origin-top">
+                    {packageOptions.map((opt) => (
+                      <div
+                        key={opt.value}
+                        onClick={() => {
+                          setNewPackage(opt.value);
+                          setShowPackageDropdown(false);
+                        }}
+                        className={`px-4 py-3 cursor-pointer transition-colors flex flex-col ${
+                          newPackage === opt.value 
+                            ? "bg-gold/5 text-gold-dark border-l-2 border-gold" 
+                            : "hover:bg-gray-50 text-charcoal-dark border-l-2 border-transparent"
+                        }`}
+                      >
+                        <span className="font-semibold text-sm">{opt.label}</span>
+                        <span className="text-[10px] text-gray-400 mt-1">{opt.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
             <div className="md:col-span-2 flex gap-3 justify-end mt-4">
               <Button
                 variant="outline"
@@ -223,7 +292,7 @@ export default function AdminEventsPage() {
                 )
               }
               disabled={deletingId === event.id}
-              className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-white/80 text-charcoal-light/40 hover:text-red-500 hover:bg-red-50 transition-all"
+              className="absolute top-3 right-3 z-10 p-1.5 rounded-md bg-gray-100/80 text-red-500 hover:bg-red-50 transition-all cursor-pointer"
               title="Hapus event"
             >
               {deletingId === event.id ? (
@@ -275,13 +344,18 @@ export default function AdminEventsPage() {
                     /{event.event_slug}
                   </code>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end gap-1">
                   <p className="text-[10px] font-bold uppercase text-charcoal-light/40 tracking-widest">
                     Status
                   </p>
-                  <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold uppercase">
-                    LIVE
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] bg-gold/10 text-gold-dark px-2 py-0.5 rounded-full font-bold uppercase">
+                      {event.package_type || "basic"}
+                    </span>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold uppercase">
+                      LIVE
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -311,7 +385,7 @@ export default function AdminEventsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 text-[10px]"
+                  className="flex-1 text-[10px] cursor-pointer shadow-none!"
                   onClick={() =>
                     window.open(`/${event.event_slug}/to/demo`, "_blank")
                   }
@@ -321,7 +395,7 @@ export default function AdminEventsPage() {
                 <Button
                   variant="primary"
                   size="sm"
-                  className="flex-1 text-[10px]"
+                  className="flex-1 text-[10px] cursor-pointer shadow-none!"
                   onClick={() => {
                     setActiveEventId(event.id);
                     router.push("/admin");

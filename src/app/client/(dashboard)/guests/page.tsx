@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useClientEventId } from "@/components/client/ClientEventContext";
 import type { Guest } from "@/types";
-import { generateSlug, generateQrToken } from "@/lib/utils";
+import { generateSlug, generateQrToken, formatPhoneDisplay } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Papa from "papaparse";
@@ -33,11 +33,40 @@ export default function ClientGuestPage() {
     setEditingId(guest.id);
     setEditName(guest.name);
     setEditPhone(guest.phone_number || "");
-    setEditMaxPax(guest.max_pax);
+    // Use rsvp_pax if attending, otherwise max_pax
+    setEditMaxPax(guest.rsvp_status === "attending" ? (guest.rsvp_pax || guest.max_pax) : guest.max_pax);
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
+  };
+
+  const handleToggleStatus = async (guest: Guest) => {
+    if (!eventId) return;
+
+    // Toggle logic: if attending -> pending, else -> attending
+    const newStatus = guest.rsvp_status === "attending" ? "pending" : "attending";
+    const newPax = newStatus === "attending" ? guest.max_pax : 0;
+
+    try {
+      const res = await fetch("/api/guests", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: guest.id,
+          event_id: eventId,
+          rsvp_status: newStatus,
+          rsvp_pax: newPax,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Gagal mengubah status");
+      
+      toast.success(`Status ${guest.name} diubah menjadi ${newStatus === "attending" ? "Hadir" : "Pending"}`);
+      fetchGuests();
+    } catch {
+      toast.error("Gagal mengubah status tamu");
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -47,6 +76,9 @@ export default function ClientGuestPage() {
     }
     if (!eventId) return;
     setEditLoading(true);
+    const guest = guests.find(g => g.id === editingId);
+    if (!guest) return;
+
     try {
       const res = await fetch("/api/guests", {
         method: "PATCH",
@@ -57,6 +89,8 @@ export default function ClientGuestPage() {
           name: editName.trim(),
           phone_number: editPhone.trim() || null,
           max_pax: editMaxPax,
+          // If attending, sync rsvp_pax with the new edited value
+          ...(guest.rsvp_status === "attending" ? { rsvp_pax: editMaxPax } : {})
         }),
       });
       if (!res.ok) throw new Error("Gagal menyimpan");
@@ -92,14 +126,27 @@ export default function ClientGuestPage() {
   const fetchEventSlug = useCallback(async () => {
     if (!eventId) return;
     const supabase = createClient();
-    const { data: eventData } = await supabase
-      .from("event_info")
-      .select("event_slug, wa_template")
-      .eq("id", eventId)
-      .single();
-    if (eventData) {
-      setEventSlug(eventData.event_slug);
-      setWaTemplate(eventData.wa_template || "");
+    try {
+      const { data: eventData, error: eventError } = await supabase
+        .from("event_info")
+        .select("event_slug, wa_template")
+        .eq("id", eventId)
+        .single();
+  
+      if (eventError) {
+        console.error("Error fetching event info:", eventError);
+        toast.error(`Gagal memuat info event: ${eventError.message}`);
+        return;
+      }
+  
+      if (eventData) {
+        setEventSlug(eventData.event_slug || "");
+        setWaTemplate(eventData.wa_template || "");
+      } else {
+        toast.error("Data event tidak ditemukan.");
+      }
+    } catch (err) {
+      console.error("Critical error in fetchEventSlug:", err);
     }
   }, [eventId]);
 
@@ -260,6 +307,10 @@ export default function ClientGuestPage() {
   };
 
   const handleCopyLink = (slug: string) => {
+    if (!eventSlug) {
+      toast.error("Slug event belum dimuat. Silakan muat ulang.");
+      return;
+    }
     const baseUrl =
       typeof window !== "undefined" && window.location.hostname !== "localhost"
         ? window.location.origin
@@ -343,23 +394,31 @@ export default function ClientGuestPage() {
                 toast.error("Tidak ada data tamu untuk di-export");
                 return;
               }
+              const rsvpLabel = (s: string) =>
+                s === "attending" ? "Hadir" : s === "not_attending" ? "Tidak Hadir" : "Belum Konfirmasi";
               const headers = [
-                "Nama",
-                "Slug",
+                "No",
+                "Nama Tamu",
                 "No HP",
                 "Status RSVP",
                 "Jumlah Hadir",
-                "Pesan",
-                "Checked In",
+                "Max Pax",
+                "Sudah Check-in",
+                "Jumlah Check-in",
+                "Waktu Check-in",
               ];
-              const rows = guests.map((g) => [
+              const rows = guests.map((g, i) => [
+                i + 1,
                 g.name,
-                g.slug,
-                g.phone_number || "",
-                g.rsvp_status,
-                g.rsvp_pax,
-                g.rsvp_message || "",
+                g.phone_number || "-",
+                rsvpLabel(g.rsvp_status),
+                g.rsvp_pax || 0,
+                g.max_pax || 2,
                 g.checked_in ? "Ya" : "Tidak",
+                g.checked_in_count || 0,
+                g.checked_in_at
+                  ? new Date(g.checked_in_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })
+                  : "-",
               ]);
               const csv = [headers, ...rows]
                 .map((row) => row.map((v) => `"${v}"`).join(","))
@@ -484,25 +543,25 @@ export default function ClientGuestPage() {
       {/* Table */}
       <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left table-fixed sm:table-auto">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase">
+                <th className="px-2 sm:px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase">
                   Nama
                 </th>
-                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden sm:table-cell">
+                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden sm:table-cell w-32 md:w-40">
                   No WA
                 </th>
-                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden sm:table-cell">
+                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden sm:table-cell w-28 md:w-36">
                   Status
                 </th>
-                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden md:table-cell">
+                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden sm:table-cell w-20">
                   Pax
                 </th>
-                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden lg:table-cell">
+                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden sm:table-cell w-32">
                   Check-in
                 </th>
-                <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase text-right">
+                <th className="px-2 sm:px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase text-right w-[70px] sm:w-auto sm:min-w-[120px]">
                   Aksi
                 </th>
               </tr>
@@ -534,16 +593,36 @@ export default function ClientGuestPage() {
                     key={guest.id}
                     className={`border-b border-gray-50 transition-colors ${isEditing ? 'bg-blue-50/30' : 'hover:bg-gray-50/50'}`}
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-2 sm:px-4 py-3 min-w-0">
                       {isEditing ? (
-                        <input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="w-full px-2 py-1 text-sm font-body border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
-                        />
+                        <div className="flex flex-col gap-2 min-w-0">
+                          <input
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            placeholder="Nama tamu"
+                            className="w-full min-w-0 px-2 py-1 text-sm font-body border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400 text-ellipsis overflow-hidden"
+                          />
+                          {/* Mobile-only fields during edit */}
+                          <div className="flex gap-1.5 sm:hidden min-w-0">
+                            <input
+                              value={editPhone}
+                              onChange={(e) => setEditPhone(e.target.value)}
+                              placeholder="No WA"
+                              className="flex-1 min-w-0 px-2 py-1 text-[10px] font-body border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+                            />
+                            <input
+                              type="number"
+                              min={1}
+                              max={20}
+                              value={editMaxPax}
+                              onChange={(e) => setEditMaxPax(Number(e.target.value))}
+                              className="w-10 min-w-0 px-1 py-1 text-[10px] font-body border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+                            />
+                          </div>
+                        </div>
                       ) : (
-                        <>
-                          <p className="font-body text-sm font-medium text-charcoal-dark">
+                        <div className="min-w-0">
+                          <p className="font-body text-sm font-medium text-charcoal-dark wrap-break-word">
                             {guest.name}
                           </p>
                           <div className="flex items-center gap-2 mt-1 sm:hidden">
@@ -556,10 +635,21 @@ export default function ClientGuestPage() {
                                     : "pending"
                               }
                             >
-                              {guest.rsvp_status}
+                              {guest.rsvp_status === "attending"
+                                ? "Hadir"
+                                : guest.rsvp_status === "not_attending"
+                                  ? "Tidak Hadir"
+                                  : "Pending"}
                             </Badge>
+                            <span className="font-body text-[10px] text-charcoal-light flex items-center gap-1">
+                              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                              </svg>
+                              {guest.rsvp_status === "attending" ? guest.rsvp_pax : guest.max_pax} Pax
+                            </span>
                           </div>
-                        </>
+                        </div>
                       )}
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
@@ -572,30 +662,36 @@ export default function ClientGuestPage() {
                         />
                       ) : (
                         <span className="font-body text-xs text-charcoal-light">
-                          {guest.phone_number || (
+                          {guest.phone_number ? formatPhoneDisplay(guest.phone_number) : (
                             <span className="text-charcoal-light/30">—</span>
                           )}
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <Badge
-                        variant={
-                          guest.rsvp_status === "attending"
-                            ? "attending"
-                            : guest.rsvp_status === "not_attending"
-                              ? "not_attending"
-                              : "pending"
-                        }
+                      <button 
+                        onClick={() => handleToggleStatus(guest)}
+                        title="Klik untuk ubah status"
+                        className="hover:scale-105 active:scale-95 transition-transform"
                       >
-                        {guest.rsvp_status === "attending"
-                          ? "Hadir"
-                          : guest.rsvp_status === "not_attending"
-                            ? "Tidak Hadir"
-                            : "Pending"}
-                      </Badge>
+                        <Badge
+                          variant={
+                            guest.rsvp_status === "attending"
+                              ? "attending"
+                              : guest.rsvp_status === "not_attending"
+                                ? "not_attending"
+                                : "pending"
+                          }
+                        >
+                          {guest.rsvp_status === "attending"
+                            ? "Hadir"
+                            : guest.rsvp_status === "not_attending"
+                              ? "Tidak Hadir"
+                              : "Pending"}
+                        </Badge>
+                      </button>
                     </td>
-                    <td className="px-4 py-3 font-body text-sm text-charcoal hidden md:table-cell">
+                    <td className="px-4 py-3 font-body text-sm text-charcoal hidden sm:table-cell">
                       {isEditing ? (
                         <input
                           type="number"
@@ -615,7 +711,7 @@ export default function ClientGuestPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 hidden lg:table-cell">
+                    <td className="px-4 py-3 hidden sm:table-cell">
                       {guest.checked_in ? (
                         <Badge variant="checked_in">✓ Checked-in</Badge>
                       ) : (
@@ -624,26 +720,26 @@ export default function ClientGuestPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-2 sm:px-4 py-3 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
                         {isEditing ? (
                           <>
                             <button
                               onClick={handleSaveEdit}
                               disabled={editLoading}
-                              className="p-1.5 rounded text-emerald-600 hover:bg-emerald-50 transition-colors"
+                              className="p-1 rounded text-emerald-600 hover:bg-emerald-50 transition-colors"
                               title="Simpan"
                             >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <polyline points="20,6 9,17 4,12" />
                               </svg>
                             </button>
                             <button
                               onClick={handleCancelEdit}
-                              className="p-1.5 rounded text-red-400 hover:bg-red-50 transition-colors"
+                              className="p-1 rounded text-red-400 hover:bg-red-50 transition-colors"
                               title="Batal"
                             >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <line x1="18" y1="6" x2="6" y2="18" />
                                 <line x1="6" y1="6" x2="18" y2="18" />
                               </svg>
@@ -674,6 +770,10 @@ export default function ClientGuestPage() {
                             {/* WA One-Click Send */}
                             <button
                               onClick={() => {
+                                if (!eventSlug) {
+                                  toast.error("Slug event belum dimuat. Silakan muat ulang.");
+                                  return;
+                                }
                                 const baseUrl =
                                   typeof window !== "undefined" &&
                                   window.location.hostname !== "localhost"

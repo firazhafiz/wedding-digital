@@ -5,6 +5,7 @@ import { COOKIE_NAME } from "@/lib/admin/context";
 import StatsCard from "@/components/admin/StatsCard";
 import LiveLink from "@/components/admin/LiveLink";
 import type { GuestbookEntry } from "@/types";
+import { cn } from "@/lib/utils";
 
 async function getDashboardData() {
   const cookieStore = await cookies();
@@ -19,7 +20,7 @@ async function getDashboardData() {
   // 1. Get Event Info
   const { data: eventInfo } = await supabase
     .from("event_info")
-    .select("id, event_slug")
+    .select("id, event_slug, guest_limit, package_type")
     .eq("id", eventId)
     .single();
 
@@ -55,6 +56,8 @@ async function getDashboardData() {
     ),
     recentGuestbook: (recentGuestbook || []) as GuestbookEntry[],
     eventSlug: eventInfo.event_slug,
+    guestLimit: eventInfo.guest_limit || 100,
+    packageType: eventInfo.package_type || "basic",
   };
 }
 
@@ -229,6 +232,41 @@ export default async function AdminDashboardPage() {
                 />
               </div>
             </div>
+          </div>
+
+          <div className="pt-6 border-t border-gray-50 mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-body text-sm font-semibold text-charcoal-dark">
+                Kuota Tamu
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gold/10 text-gold-dark uppercase tracking-wider">
+                Paket {stats.packageType}
+              </span>
+            </div>
+            <div className="flex justify-between mb-1.5">
+              <span className="font-body text-xs text-charcoal-light">
+                Terpakai: <span className="text-charcoal font-medium">{stats.totalGuests}</span>
+              </span>
+              <span className="font-body text-xs text-charcoal-light">
+                Limit: <span className="text-charcoal font-medium">{stats.guestLimit}</span>
+              </span>
+            </div>
+            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all duration-1000",
+                  stats.totalGuests >= stats.guestLimit ? "bg-red-500" : "bg-gold"
+                )}
+                style={{
+                  width: `${Math.min((stats.totalGuests / stats.guestLimit) * 100, 100)}%`,
+                }}
+              />
+            </div>
+            {stats.totalGuests >= stats.guestLimit && (
+              <p className="mt-2 font-body text-[10px] text-red-500 italic">
+                *Kuota tamu untuk event ini sudah penuh.
+              </p>
+            )}
           </div>
         </div>
 

@@ -114,7 +114,7 @@ export default function GallerySection({
               onClick={() => setSelectedIndex(index)}
             >
               <NextImage
-                src={photo.photo_url}
+                src={photo.photo_url.trim()}
                 alt={photo.caption || `Gallery photo ${index + 1}`}
                 width={1920}
                 height={1080}
@@ -149,81 +149,71 @@ export default function GallerySection({
 
       {/* Lightbox Modal */}
       {selectedIndex !== null && (
-        <Modal
-          isOpen={selectedIndex !== null}
-          onClose={() => setSelectedIndex(null)}
-          className="max-w-5xl w-full bg-charcoal-dark p-2"
-        >
-          <div className="relative">
-            <NextImage
-              src={photos[selectedIndex].photo_url}
-              alt={
-                photos[selectedIndex].caption ||
-                `Gallery photo ${selectedIndex + 1}`
-              }
-              width={1200}
-              height={1200}
-              className="w-full h-auto max-h-[80vh] object-contain"
-            />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8 bg-black/90 backdrop-blur-md">
+          {/* Close Area */}
+          <div className="absolute inset-0 z-0" onClick={() => setSelectedIndex(null)} />
+          
+          <div className="relative z-10 w-auto max-w-5xl mx-auto flex flex-col items-center justify-center">
+            {/* Close Button Top Right of Screen */}
+            <button
+              onClick={() => setSelectedIndex(null)}
+              className="fixed top-6 right-6 z-50 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+              aria-label="Tutup"
+            >
+              <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+                <path d="M1 1L13 13M1 13L13 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
 
-            {/* Caption */}
-            {photos[selectedIndex].caption && (
-              <p className="text-center font-body text-gray-500 text-sm mt-3 pb-2">
-                {photos[selectedIndex].caption}
+            <div className="relative inline-block border-4 border-white rounded-md overflow-hidden bg-black shadow-2xl">
+              <NextImage
+                src={photos[selectedIndex].photo_url.trim()}
+                alt={photos[selectedIndex].caption || `Gallery photo ${selectedIndex + 1}`}
+                width={1200}
+                height={1200}
+                className="w-auto h-auto max-w-[90vw] max-h-[80vh] object-contain"
+              />
+
+              {/* Navigation Overlays */}
+              {selectedIndex > 0 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+                  className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm transition-all"
+                  aria-label="Previous"
+                >
+                  <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M10 2L4 8L10 14" />
+                  </svg>
+                </button>
+              )}
+
+              {selectedIndex < photos.length - 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleNext(); }}
+                  className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm transition-all"
+                  aria-label="Next"
+                >
+                  <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 2L12 8L6 14" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Caption & Counter */}
+            <div className="mt-4 text-center">
+              {photos[selectedIndex].caption && (
+                <p className="font-body text-white text-sm mb-1">
+                  {photos[selectedIndex].caption}
+                </p>
+              )}
+              <p className="font-body text-white/50 text-xs tracking-widest">
+                {selectedIndex + 1} / {photos.length}
               </p>
-            )}
-
-            {/* Navigation */}
-            {selectedIndex > 0 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handlePrev();
-                }}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors"
-                aria-label="Previous"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M10 2L4 8L10 14" />
-                </svg>
-              </button>
-            )}
-
-            {selectedIndex < photos.length - 1 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleNext();
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors"
-                aria-label="Next"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M6 2L12 8L6 14" />
-                </svg>
-              </button>
-            )}
-
-            {/* Counter */}
-            <div className="absolute top-3 left-3 font-body text-white/50 text-xs">
-              {selectedIndex + 1} / {photos.length}
             </div>
           </div>
-        </Modal>
+        </div>
+
       )}
     </section>
   );

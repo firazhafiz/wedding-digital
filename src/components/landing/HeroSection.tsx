@@ -53,12 +53,12 @@ export default function HeroSection() {
           Dilengkapi fitur RSVP, QR Check-in, Gallery, dan masih banyak lagi.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-6">
           <Link
-            href="/order?plan=starter"
-            className="font-body text-sm font-semibold text-charcoal-dark bg-gold hover:bg-gold-light px-8 py-3.5 rounded-md transition-all duration-300 hover:shadow-xl hover:shadow-gold/20 hover:-translate-y-0.5 w-full sm:w-auto text-center"
+            href="#pricing"
+            className="font-body text-sm font-semibold cursor-pointer text-charcoal-dark bg-gold hover:bg-gold-light px-8 py-3.5 rounded-md transition-all duration-300 hover:shadow-xl hover:shadow-gold/20 hover:-translate-y-0.5 w-full sm:w-auto text-center"
           >
-            Mulai dari Rp 299.000
+            Mulai Sekarang
           </Link>
           <a
             href="#services"

@@ -4,13 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { getActiveEventId } from "@/lib/admin/context";
+import { useClientEventId } from "@/components/client/ClientEventContext";
 import Button from "@/components/ui/Button";
 import FileUpload from "@/components/ui/FileUpload";
-import ClientAccessManager from "@/components/admin/ClientAccessManager";
 import type { EventInfo, StorylineItem, GalleryPhoto } from "@/types";
 
-export default function AdminSettingsPage() {
+export default function ClientSettingsPage() {
+  const eventId = useClientEventId();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [eventData, setEventData] = useState<Partial<EventInfo>>({});
@@ -21,9 +21,7 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     async function fetchSettings() {
-      const eventId = getActiveEventId();
       if (!eventId) {
-        router.push("/admin/events");
         return;
       }
 
@@ -469,7 +467,7 @@ export default function AdminSettingsPage() {
                   </Button>
                   <p className="text-[10px] text-charcoal-light/40 italic">
                     {(eventData.guest_limit || 0) < 300
-                      ? `${gallery.length}/12 Foto (Limit Maksimal Paket Basic)`
+                      ? `${gallery.length}/12 Foto (Tingkatkan paket untuk menambah batas)`
                       : `${gallery.length}/30 Foto`}
                   </p>
                 </div>
@@ -1068,7 +1066,6 @@ export default function AdminSettingsPage() {
               )}
             </div>
             {(eventData.guest_limit || 0) >= 500 && (
-
             <div>
               <label className="cms-label">Template Pesan WhatsApp</label>
               <textarea
@@ -1086,7 +1083,6 @@ export default function AdminSettingsPage() {
             </div>
             )}
           </div>
-
         </section>
 
         <div className="flex justify-end pt-6">
@@ -1101,12 +1097,7 @@ export default function AdminSettingsPage() {
         </div>
       </form>
 
-      {/* Client Access Management */}
-      {eventData.id && (
-        <div className="mt-10">
-          <ClientAccessManager eventId={eventData.id} />
-        </div>
-      )}
+      {/* Client Access Management Restricted */}
 
       <style jsx>{`
         .animate-fade-in {

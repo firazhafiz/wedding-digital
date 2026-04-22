@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -16,55 +16,89 @@ function formatRp(amount: number) {
     maximumFractionDigits: 0,
   }).format(amount);
 }
+const PLAN_OPTIONS = [
+  { value: "basic", label: "Basic", sub: "Max 100 Tamu" },
+  { value: "pro", label: "Pro", sub: "Max 300 Tamu" },
+  { value: "exclusive", label: "Exclusive", sub: "Max 500 + WA Auto" },
+  { value: "custom", label: "Custom", sub: "> 500 Tamu" },
+];
 
 function calcPrice(plan: string, qty: number) {
   switch (plan) {
-    case "bundling": {
-      const packs = Math.ceil(qty / BUNDLING_SIZE) || 1;
-      const actualQty = packs * BUNDLING_SIZE;
+    case "basic":
       return {
-        label: "Bundling",
-        desc: `${packs} paket × ${BUNDLING_SIZE} undangan × ${formatRp(PRICE_BUNDLING)}`,
-        total: actualQty * PRICE_BUNDLING,
-        qty: actualQty,
+        label: "Basic",
+        desc: `Paket Basic (Max 100 Tamu) - Fitur Lengkap, Sebar Manual`,
+        total: 299000,
+        qty: Math.max(1, Math.min(qty, 100)),
       };
-    }
-    case "combine": {
-      const fullPacks = Math.floor(qty / BUNDLING_SIZE);
-      const remainder = qty - fullPacks * BUNDLING_SIZE;
-      const total = fullPacks * BUNDLING_SIZE * PRICE_BUNDLING + remainder * PRICE_SATUAN;
-      const parts = [];
-      if (fullPacks > 0) parts.push(`${fullPacks}×${BUNDLING_SIZE} bundling × ${formatRp(PRICE_BUNDLING)}`);
-      if (remainder > 0) parts.push(`${remainder} satuan × ${formatRp(PRICE_SATUAN)}`);
-      return { label: "Combine", desc: parts.join(" + "), total, qty };
-    }
-    default: {
-      const q = qty || 1;
+    case "pro":
       return {
-        label: "Satuan",
-        desc: `${q} undangan × ${formatRp(PRICE_SATUAN)}`,
-        total: q * PRICE_SATUAN,
+        label: "Pro",
+        desc: `Paket Pro (Max 300 Tamu) - Fitur Lengkap, Sebar Manual`,
+        total: 525000,
+        qty: Math.max(1, Math.min(qty, 300)),
+      };
+    case "exclusive":
+      return {
+        label: "Exclusive",
+        desc: `Paket Exclusive (Max 500 Tamu) - Inc. WhatsApp Auto Broadcast`,
+        total: 649000,
+        qty: Math.max(1, Math.min(qty, 500)),
+      };
+    case "custom":
+      const q = Math.max(1, qty);
+
+      // Tiered Base Price for Custom
+      let basePrice = 899000; // Default for 501-1000
+      if (q > 3000) basePrice = 2499000;
+      else if (q > 2000) basePrice = 1899000;
+      else if (q > 1000) basePrice = 1399000;
+
+      const total = basePrice + q * 500;
+      return {
+        label: "Custom",
+        desc: `Paket Custom - Base ${formatRp(basePrice)} + Add-on Broadcast Rp 500/pesan`,
+        total: total,
         qty: q,
       };
-    }
+    default:
+      return {
+        label: "Basic",
+        desc: "Paket Basic",
+        total: 299000,
+        qty: 100,
+      };
   }
 }
-
-const PLAN_OPTIONS = [
-  { value: "satuan", label: "Satuan", sub: "Rp 5.000/undangan" },
-  { value: "bundling", label: "Bundling", sub: "Rp 3.000/undangan (min. 100)" },
-  { value: "combine", label: "Combine", sub: "Gabungan bundling + satuan" },
-];
 
 function OrderFormContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const initialPlan = searchParams.get("plan") || "satuan";
+
+  // Support both 'package' and old 'plan' params for backward compatibility
+  const initialPlan =
+    searchParams.get("package") || searchParams.get("plan") || "basic";
   const initialQty = parseInt(searchParams.get("qty") || "") || 0;
 
   const [plan, setPlan] = useState(initialPlan);
   const [qty, setQty] = useState(initialQty > 0 ? String(initialQty) : "");
   const qtyNum = parseInt(qty) || 0;
+
+  // Fully dynamic auto-switch package based on qty
+  useEffect(() => {
+    if (qtyNum === 0) return;
+
+    if (qtyNum > 500) {
+      if (plan !== "custom") setPlan("custom");
+    } else if (qtyNum > 300) {
+      if (plan !== "exclusive") setPlan("exclusive");
+    } else if (qtyNum > 100) {
+      if (plan !== "pro") setPlan("pro");
+    } else {
+      if (plan !== "basic") setPlan("basic");
+    }
+  }, [qtyNum, plan]);
 
   const priceInfo = calcPrice(plan, qtyNum);
 
@@ -88,7 +122,13 @@ function OrderFormContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.client_name || !form.client_phone || !form.groom_name || !form.bride_name) return;
+    if (
+      !form.client_name ||
+      !form.client_phone ||
+      !form.groom_name ||
+      !form.bride_name
+    )
+      return;
     if (qtyNum < 1) return;
 
     setLoading(true);
@@ -122,7 +162,14 @@ function OrderFormContent() {
           href="/#pricing"
           className="inline-flex items-center gap-2 font-body text-sm text-white/40 hover:text-white/70 transition-colors mb-8"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
           Kembali ke Pricing
@@ -155,13 +202,19 @@ function OrderFormContent() {
                   className={`px-3 py-3 rounded-lg border text-left transition-all ${
                     plan === opt.value
                       ? "border-gold/40 bg-gold/10"
-                      : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                      : "border-white/10 bg-white/2 hover:border-white/20"
                   }`}
                 >
-                  <p className={`font-body text-sm font-semibold ${
-                    plan === opt.value ? "text-gold" : "text-white/70"
-                  }`}>{opt.label}</p>
-                  <p className="font-body text-[10px] text-white/35 mt-0.5">{opt.sub}</p>
+                  <p
+                    className={`font-body text-sm font-semibold ${
+                      plan === opt.value ? "text-gold" : "text-white/70"
+                    }`}
+                  >
+                    {opt.label}
+                  </p>
+                  <p className="font-body text-[10px] text-white/35 mt-0.5">
+                    {opt.sub}
+                  </p>
                 </button>
               ))}
             </div>
@@ -181,11 +234,14 @@ function OrderFormContent() {
                 className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-body text-sm placeholder:text-white/20 focus:outline-none focus:border-gold/40 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 placeholder="Masukkan jumlah undangan, contoh: 250"
               />
-              {plan === "bundling" && qtyNum > 0 && qtyNum % BUNDLING_SIZE !== 0 && (
-                <p className="font-body text-[11px] text-gold/60 mt-1">
-                  Bundling akan dibulatkan ke {Math.ceil(qtyNum / BUNDLING_SIZE) * BUNDLING_SIZE} undangan
-                </p>
-              )}
+              {plan === "bundling" &&
+                qtyNum > 0 &&
+                qtyNum % BUNDLING_SIZE !== 0 && (
+                  <p className="font-body text-[11px] text-gold/60 mt-1">
+                    Bundling akan dibulatkan ke{" "}
+                    {Math.ceil(qtyNum / BUNDLING_SIZE) * BUNDLING_SIZE} undangan
+                  </p>
+                )}
             </div>
           </div>
 
@@ -197,20 +253,32 @@ function OrderFormContent() {
               </p>
               <div className="flex items-center justify-between mb-1">
                 <span className="font-body text-sm text-white/70">Paket</span>
-                <span className="font-body text-sm text-white font-medium">{priceInfo.label}</span>
+                <span className="font-body text-sm text-white font-medium">
+                  {priceInfo.label}
+                </span>
               </div>
               <div className="flex items-center justify-between mb-1">
-                <span className="font-body text-sm text-white/70">Undangan</span>
-                <span className="font-body text-sm text-white/60">{priceInfo.qty} pcs</span>
+                <span className="font-body text-sm text-white/70">
+                  Undangan
+                </span>
+                <span className="font-body text-sm text-white/60">
+                  {priceInfo.qty} pcs
+                </span>
               </div>
               <div className="flex items-start justify-between mb-1">
                 <span className="font-body text-sm text-white/70">Rincian</span>
-                <span className="font-body text-sm text-white/60 text-right max-w-[200px]">{priceInfo.desc}</span>
+                <span className="font-body text-sm text-white/60 text-right max-w-[200px]">
+                  {priceInfo.desc}
+                </span>
               </div>
               <div className="h-px bg-gold/10 my-3" />
               <div className="flex items-center justify-between">
-                <span className="font-body text-sm text-white/70 font-semibold">Total</span>
-                <span className="font-display text-xl text-gold">{formatRp(priceInfo.total)}</span>
+                <span className="font-body text-sm text-white/70 font-semibold">
+                  Total
+                </span>
+                <span className="font-display text-xl text-gold">
+                  {formatRp(priceInfo.total)}
+                </span>
               </div>
             </div>
           )}

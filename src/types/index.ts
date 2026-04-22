@@ -42,6 +42,7 @@ export interface Gift {
 export interface EventInfo {
   id: string;
   user_id: string | null;
+  client_email: string | null;
   event_slug: string;
 
   // Bride & Groom
@@ -108,6 +109,10 @@ export interface EventInfo {
   wa_template: string | null;
   wa_gateway_url: string | null;
   wa_api_key: string | null;
+
+  // Quota & Package
+  package_type: string | null;
+  guest_limit: number | null;
 
   updated_at: string;
 }

@@ -69,7 +69,7 @@ export default function AboutSection() {
             ].map((item) => (
               <div
                 key={item.title}
-                className="p-5 rounded-xl border border-white/5 bg-white/2 hover:bg-white/5 hover:border-gold/20 transition-all duration-500 group"
+                className="p-5 rounded-xl border border-white/5 bg-white/8 hover:bg-white/20 hover:border-gold/30 transition-all duration-500 group"
               >
                 <h3 className="font-body text-sm font-semibold text-white mb-1 group-hover:text-gold transition-colors">
                   {item.title}

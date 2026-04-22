@@ -35,7 +35,7 @@ export default function ClientLoginPage() {
       }
 
       toast.success("Login berhasil!");
-      router.push("/client");
+      router.push("/client/events");
       router.refresh();
     } catch {
       toast.error("Terjadi kesalahan");

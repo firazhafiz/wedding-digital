@@ -72,7 +72,7 @@ export default function RsvpSection({
   };
 
   return (
-    <section ref={sectionRef} className="py-20 lg:py-32 px-6 bg-cream">
+    <section ref={sectionRef} className="py-20 px-6">
       <div className="max-w-xl mx-auto">
         {/* Title */}
         <div className="text-center mb-12">
@@ -185,9 +185,11 @@ export default function RsvpSection({
             {status === "attending" && (
               <div className="px-4 py-3 bg-gold/5 border border-gold/20 rounded-sm">
                 <p className="font-body text-sm text-charcoal-dark text-center">
-                  <span className="text-gold">✦</span>{" "}
-                  Undangan ini berlaku untuk{" "}
-                  <span className="font-semibold text-gold">{guest.max_pax} orang</span>
+                  <span className="text-gold">✦</span> Undangan ini berlaku
+                  untuk{" "}
+                  <span className="font-semibold text-gold">
+                    {guest.max_pax} orang
+                  </span>
                 </p>
               </div>
             )}
@@ -210,19 +212,7 @@ export default function RsvpSection({
               </p>
             </div>
 
-            {/* No WhatsApp (Opsional) */}
-            <div>
-              <label className="block font-body text-xs tracking-[0.2em] uppercase text-charcoal-light mb-2">
-                No. WhatsApp (opsional)
-              </label>
-              <input
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="08xxxxxxxxxx"
-                className="w-full px-4 py-3 bg-transparent border border-gold/30 rounded-sm text-charcoal font-body placeholder:text-charcoal-light/40 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold/30 transition-all duration-300"
-              />
-            </div>
+
 
             {/* Submit */}
             <Button

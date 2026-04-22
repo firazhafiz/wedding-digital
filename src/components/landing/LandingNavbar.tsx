@@ -132,12 +132,12 @@ export default function LandingNavbar() {
                 <span className="absolute -bottom-1 left-0 w-0 h-px bg-gold group-hover:w-full transition-all duration-300" />
               </button>
             ))}
-            <Link
-              href="/order?plan=starter"
+            <button
+              onClick={() => handleLinkClick("#pricing")}
               className="font-body text-[13px] font-medium text-charcoal-dark bg-gold px-6 py-2.5 rounded transition-all duration-300 hover:bg-gold-light"
             >
               Order Now
-            </Link>
+            </button>
           </div>
 
           {/* Mobile Toggle */}
@@ -218,13 +218,12 @@ export default function LandingNavbar() {
               }}
               className="mt-16"
             >
-              <Link
-                href="/order?plan=starter"
+              <button
+                onClick={() => handleLinkClick("#pricing")}
                 className="inline-block text-center font-body text-sm font-semibold text-charcoal-dark bg-gold px-8 py-4 rounded-sm hover:bg-gold-light transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl shadow-gold/10"
-                onClick={() => setMenuOpen(false)}
               >
                 Mulai Sekarang
-              </Link>
+              </button>
             </div>
           </div>
 
