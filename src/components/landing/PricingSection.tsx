@@ -3,17 +3,21 @@
 import Link from "next/link";
 
 const WA_NUMBER = "6282332676848";
-const WA_URL = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent("Halo akadigital, saya tertarik dengan paket Custom untuk undangan pernikahan.")}`;
+const WA_ORDER_URL = (pkg: string) =>
+  `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Halo akadigital, saya tertarik dengan paket ${pkg} untuk undangan pernikahan.`)}`;
+const WA_CUSTOM_URL = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent("Halo akadigital, saya ingin konsultasi untuk paket undangan kustom / kapasitas lebih dari 2.500 tamu.")}`;
 
 const commonFeatures = [
   "Template Premium Elegan",
   "RSVP & Konfirmasi Kehadiran",
-  "QR Code Check-in System",
+  "QR Code Check-in (Unlimited Device)",
   "Digital Gift / Angpao",
   "Gallery Foto & Video",
   "Background Music",
   "Countdown & Peta Lokasi",
   "Dashboard Pengelola Tamu",
+  "Timeline Kisah Cinta",
+  "Generator Kirim WA (Link Unik)",
 ];
 
 function formatRp(amount: number) {
@@ -61,8 +65,8 @@ export default function PricingSection() {
             Pilih Paket Keindahan Anda
           </h2>
           <p className="font-body text-white/50 text-sm max-w-md mx-auto leading-relaxed">
-            Investasi sekali untuk kenangan seumur hidup. Pilih paket yang
-            paling sesuai dengan jumlah tamu Anda.
+            Investasi sekali untuk kenangan seumur hidup. Semua paket mendapat
+            fitur undangan yang identik — perbedaan hanya di kuota tamu.
           </p>
         </div>
 
@@ -74,57 +78,76 @@ export default function PricingSection() {
             price={299000}
             paxLimit="100"
             description="Cocok untuk acara inti keluarga."
-            features={[...commonFeatures, "Sebar Manual (Link Unik)"]}
+            features={commonFeatures}
             href="/order?package=basic"
           />
 
           {/* PRO - Best Seller */}
           <PricingCard
             name="Pro"
-            price={525000}
-            paxLimit="300"
+            price={499000}
+            paxLimit="500"
             isPopular
             description="Pilihan favorit calon pengantin."
-            features={[...commonFeatures, "Sebar Manual (Link Unik)"]}
+            features={commonFeatures}
             href="/order?package=pro"
           />
 
           {/* EXCLUSIVE */}
           <PricingCard
             name="Exclusive"
-            price={649000}
-            paxLimit="500"
-            description="Sempurna untuk undangan masif."
+            price={999000}
+            paxLimit="1.000"
+            description="Sempurna untuk undangan skala besar."
             features={[
               ...commonFeatures,
-              "Auto-Broadcast WhatsApp",
-              "Laporan Scan Real-time",
+              "Kustomisasi Template WA",
+              "Bantuan Penyebaran WA",
             ]}
             href="/order?package=exclusive"
             iconColor="text-emerald-400"
           />
 
-          {/* CUSTOM */}
+          {/* ELITE */}
           <PricingCard
-            name="Custom"
-            price="Custom"
-            paxLimit="Unlimited"
-            description="Solusi total tanpa batas tamu."
+            name="Elite"
+            price={1499000}
+            paxLimit="2.500"
+            description="Maksimal & premium tanpa kompromi."
             features={[
               ...commonFeatures,
-              "Custom Design Request",
-              "WA Broadcast (Biaya API)",
-              "Prioritas Support 24/7",
+              "Kustomisasi Template WA",
+              "Bantuan Penyebaran WA",
             ]}
-            href={WA_URL}
-            isExternal
-            ctaText="Hubungi Kami"
+            href="/order?package=elite"
+            iconColor="text-purple-400"
           />
         </div>
 
         <p className="text-center font-body text-xs text-white/30 mt-12">
-          *Semua paket termasuk akses dashboard admin selamanya.
+          *Semua paket mendapat fitur identik. Perbedaan hanya di kuota tamu.
         </p>
+
+        {/* CTA Custom */}
+        <div className="mt-10 text-center border border-white/10 rounded-2xl p-8 bg-white/[0.02] backdrop-blur-sm max-w-2xl mx-auto">
+          <h3 className="font-display text-xl text-white mb-2">Butuh Lebih?</h3>
+          <p className="font-body text-white/50 text-sm mb-6 leading-relaxed">
+            Ingin desain undangan khusus atau kapasitas lebih dari 2.500 tamu?
+            <br />
+            Konsultasikan kebutuhan Anda langsung dengan tim kami.
+          </p>
+          <Link
+            href={WA_CUSTOM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-gold hover:bg-gold-light text-charcoal-dark font-body text-sm font-bold px-8 py-3.5 rounded-lg transition-all duration-300 shadow-lg shadow-gold/20"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+            </svg>
+            Konsultasi via WhatsApp
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -138,7 +161,6 @@ function PricingCard({
   features,
   href,
   isPopular = false,
-  isExternal = false,
   ctaText = "Pilih Paket",
   iconColor = "text-gold",
 }: {
@@ -149,7 +171,6 @@ function PricingCard({
   features: string[];
   href: string;
   isPopular?: boolean;
-  isExternal?: boolean;
   ctaText?: string;
   iconColor?: string;
 }) {
@@ -175,11 +196,9 @@ function PricingCard({
         </p>
         <div className="flex items-baseline gap-1">
           {typeof price === "number" ? (
-            <>
-              <span className="font-display text-3xl text-white">
-                {formatRp(price).split(",")[0]}
-              </span>
-            </>
+            <span className="font-display text-3xl text-white">
+              {formatRp(price).split(",")[0]}
+            </span>
           ) : (
             <span className="font-display text-3xl text-white">{price}</span>
           )}
@@ -188,7 +207,7 @@ function PricingCard({
           Max {paxLimit} Tamu
         </p>
         <p className="font-body text-white/50 text-[11px] mt-4 leading-relaxed italic">
-          "{description}"
+          &quot;{description}&quot;
         </p>
       </div>
 
@@ -205,8 +224,6 @@ function PricingCard({
 
       <Link
         href={href}
-        target={isExternal ? "_blank" : undefined}
-        rel={isExternal ? "noopener noreferrer" : undefined}
         className={`block text-center font-body text-sm font-bold px-6 py-3.5 rounded-lg transition-all duration-300 ${
           isPopular
             ? "bg-gold hover:bg-gold-light text-charcoal-dark shadow-lg shadow-gold/20"

@@ -184,7 +184,7 @@ export default function AdminSettingsPage() {
                 <div>
                   <label className="cms-label">Foto Mempelai Pria</label>
                   <FileUpload
-                    currentUrl={eventData.groom_photo_url}
+                    currentUrl={eventData.groom_photo_url || undefined}
                     onUploadComplete={(url) => setEventData({ ...eventData, groom_photo_url: url })}
                     label="Unggah Foto Pria"
                   />
@@ -256,7 +256,7 @@ export default function AdminSettingsPage() {
                 <div>
                   <label className="cms-label">Foto Mempelai Wanita</label>
                   <FileUpload
-                    currentUrl={eventData.bride_photo_url}
+                    currentUrl={eventData.bride_photo_url || undefined}
                     onUploadComplete={(url) => setEventData({ ...eventData, bride_photo_url: url })}
                     label="Unggah Foto Wanita"
                   />
@@ -446,11 +446,7 @@ export default function AdminSettingsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={
-                      (eventData.guest_limit || 0) < 300
-                        ? gallery.length >= 12
-                        : gallery.length >= 30
-                    }
+                    disabled={gallery.length >= 20}
                     onClick={() =>
                       setGallery([
                         ...gallery,
@@ -468,9 +464,7 @@ export default function AdminSettingsPage() {
                     + Tambah Foto
                   </Button>
                   <p className="text-[10px] text-charcoal-light/40 italic">
-                    {(eventData.guest_limit || 0) < 300
-                      ? `${gallery.length}/12 Foto (Limit Maksimal Paket Basic)`
-                      : `${gallery.length}/30 Foto`}
+                    {gallery.length}/20 Foto
                   </p>
                 </div>
               </div>
@@ -482,7 +476,7 @@ export default function AdminSettingsPage() {
                   >
                     <div className="flex-1 space-y-2">
                       <FileUpload
-                        currentUrl={item.photo_url}
+                        currentUrl={item.photo_url || undefined}
                         onUploadComplete={(url) => {
                           const newGallery = [...gallery];
                           newGallery[idx].photo_url = url;
@@ -627,7 +621,7 @@ export default function AdminSettingsPage() {
                       <div className="md:col-span-2">
                         <label className="cms-label-xs">Foto Momen</label>
                         <FileUpload
-                          currentUrl={item.photo_url}
+                          currentUrl={item.photo_url || undefined}
                           onUploadComplete={(url) => {
                             const newStory = [...storyline];
                             newStory[idx].photo_url = url;
@@ -791,7 +785,7 @@ export default function AdminSettingsPage() {
             <div>
               <label className="cms-label">Hero Movie / Photo</label>
               <FileUpload
-                currentUrl={eventData.hero_photo_url}
+                currentUrl={eventData.hero_photo_url || undefined}
                 onUploadComplete={(url) => setEventData({ ...eventData, hero_photo_url: url })}
                 label="Unggah Hero Media"
                 accept="image/*,video/*"
@@ -846,7 +840,7 @@ export default function AdminSettingsPage() {
             <div>
               <label className="cms-label">Welcome Video</label>
               <FileUpload
-                currentUrl={eventData.welcome_video_url}
+                currentUrl={eventData.welcome_video_url || undefined}
                 onUploadComplete={(url) => setEventData({ ...eventData, welcome_video_url: url })}
                 label="Unggah Welcome Video"
                 accept="video/*"
@@ -857,7 +851,7 @@ export default function AdminSettingsPage() {
             <div>
               <label className="cms-label">Story & Gallery Background</label>
               <FileUpload
-                currentUrl={eventData.story_gallery_bg_url}
+                currentUrl={eventData.story_gallery_bg_url || undefined}
                 onUploadComplete={(url) => setEventData({ ...eventData, story_gallery_bg_url: url })}
                 label="Unggah Background Seksi"
                 maxSizeMB={10}
@@ -1031,8 +1025,8 @@ export default function AdminSettingsPage() {
                   *Email yang akan menerima pemberitahuan saat tamu mengisi RSVP
                 </p>
               </div>
-              {/* WA Broadcast & API Gateway - Exclusive/Custom Only */}
-              {(eventData.guest_limit || 0) >= 500 && (
+              {/* WA Broadcast & API Gateway - Exclusive/Elite Only */}
+              {(eventData.guest_limit || 0) >= 1000 && (
                 <div>
                   <label className="cms-label">
                     Gateway WA (Fonnté) — Opsional
@@ -1064,13 +1058,13 @@ export default function AdminSettingsPage() {
                     *Hanya diisi jika ingin broadcast otomatis. Kosongkan untuk
                     kirim manual.
                   </p>
-                </div>
-              )}
-            </div>
-            {(eventData.guest_limit || 0) >= 500 && (
-
-            <div>
-              <label className="cms-label">Template Pesan WhatsApp</label>
+                  </div>
+                )}
+              </div>
+              {/* WA Broadcast - Exclusive/Elite Only */}
+              {(eventData.guest_limit || 0) >= 1000 && (
+                <div>
+                <label className="cms-label">Template Pesan WhatsApp</label>
               <textarea
                 value={eventData.wa_template || ""}
                 onChange={(e) =>

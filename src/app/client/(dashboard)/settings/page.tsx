@@ -444,11 +444,7 @@ export default function ClientSettingsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={
-                      (eventData.guest_limit || 0) < 300
-                        ? gallery.length >= 12
-                        : gallery.length >= 30
-                    }
+                    disabled={gallery.length >= 20}
                     onClick={() =>
                       setGallery([
                         ...gallery,
@@ -466,9 +462,7 @@ export default function ClientSettingsPage() {
                     + Tambah Foto
                   </Button>
                   <p className="text-[10px] text-charcoal-light/40 italic">
-                    {(eventData.guest_limit || 0) < 300
-                      ? `${gallery.length}/12 Foto (Tingkatkan paket untuk menambah batas)`
-                      : `${gallery.length}/30 Foto`}
+                    {gallery.length}/20 Foto
                   </p>
                 </div>
               </div>
@@ -1029,43 +1023,8 @@ export default function ClientSettingsPage() {
                   *Email yang akan menerima pemberitahuan saat tamu mengisi RSVP
                 </p>
               </div>
-              {/* WA Broadcast & API Gateway - Exclusive/Custom Only */}
-              {(eventData.guest_limit || 0) >= 500 && (
-                <div>
-                  <label className="cms-label">
-                    Gateway WA (Fonnté) — Opsional
-                  </label>
-                  <div className="space-y-3">
-                    <input
-                      type="text"
-                      value={eventData.wa_gateway_url || ""}
-                      onChange={(e) =>
-                        setEventData({
-                          ...eventData,
-                          wa_gateway_url: e.target.value,
-                        })
-                      }
-                      className="cms-input w-full"
-                      placeholder="https://api.fonnte.com/send"
-                    />
-                    <input
-                      type="text"
-                      value={eventData.wa_api_key || ""}
-                      onChange={(e) =>
-                        setEventData({ ...eventData, wa_api_key: e.target.value })
-                      }
-                      className="cms-input w-full"
-                      placeholder="API Key Fonnté"
-                    />
-                  </div>
-                  <p className="text-[10px] text-charcoal-light/40 mt-1 italic">
-                    *Hanya diisi jika ingin broadcast otomatis. Kosongkan untuk
-                    kirim manual.
-                  </p>
-                </div>
-              )}
             </div>
-            {(eventData.guest_limit || 0) >= 500 && (
+            {(eventData.guest_limit || 0) >= 1000 && (
             <div>
               <label className="cms-label">Template Pesan WhatsApp</label>
               <textarea

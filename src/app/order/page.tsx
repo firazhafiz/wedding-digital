@@ -18,9 +18,9 @@ function formatRp(amount: number) {
 }
 const PLAN_OPTIONS = [
   { value: "basic", label: "Basic", sub: "Max 100 Tamu" },
-  { value: "pro", label: "Pro", sub: "Max 300 Tamu" },
-  { value: "exclusive", label: "Exclusive", sub: "Max 500 + WA Auto" },
-  { value: "custom", label: "Custom", sub: "> 500 Tamu" },
+  { value: "pro", label: "Pro", sub: "Max 500 Tamu" },
+  { value: "exclusive", label: "Exclusive", sub: "Max 1.000 Tamu" },
+  { value: "elite", label: "Elite", sub: "Max 2.500 Tamu" },
 ];
 
 function calcPrice(plan: string, qty: number) {
@@ -28,46 +28,37 @@ function calcPrice(plan: string, qty: number) {
     case "basic":
       return {
         label: "Basic",
-        desc: `Paket Basic (Max 100 Tamu) - Fitur Lengkap, Sebar Manual`,
+        desc: `Paket Basic (Max 100 Tamu) - Fitur Lengkap`,
         total: 299000,
         qty: Math.max(1, Math.min(qty, 100)),
       };
     case "pro":
       return {
         label: "Pro",
-        desc: `Paket Pro (Max 300 Tamu) - Fitur Lengkap, Sebar Manual`,
-        total: 525000,
-        qty: Math.max(1, Math.min(qty, 300)),
+        desc: `Paket Pro (Max 500 Tamu) - Fitur Lengkap`,
+        total: 499000,
+        qty: Math.max(1, Math.min(qty, 500)),
       };
     case "exclusive":
       return {
         label: "Exclusive",
-        desc: `Paket Exclusive (Max 500 Tamu) - Inc. WhatsApp Auto Broadcast`,
-        total: 649000,
-        qty: Math.max(1, Math.min(qty, 500)),
+        desc: `Paket Exclusive (Max 1.000 Tamu) - Inc. WA Template Custom & Opsi Bantuan Blast`,
+        total: 999000,
+        qty: Math.max(1, Math.min(qty, 1000)),
       };
-    case "custom":
-      const q = Math.max(1, qty);
-
-      // Tiered Base Price for Custom
-      let basePrice = 899000; // Default for 501-1000
-      if (q > 3000) basePrice = 2499000;
-      else if (q > 2000) basePrice = 1899000;
-      else if (q > 1000) basePrice = 1399000;
-
-      const total = basePrice + q * 500;
+    case "elite":
       return {
-        label: "Custom",
-        desc: `Paket Custom - Base ${formatRp(basePrice)} + Add-on Broadcast Rp 500/pesan`,
-        total: total,
-        qty: q,
+        label: "Elite",
+        desc: `Paket Elite (Max 2.500 Tamu) - Inc. WA Template Custom & Opsi Bantuan Blast`,
+        total: 1499000,
+        qty: Math.max(1, Math.min(qty, 2500)),
       };
     default:
       return {
         label: "Basic",
         desc: "Paket Basic",
         total: 299000,
-        qty: 100,
+        qty: Math.max(1, Math.min(qty, 100)),
       };
   }
 }
@@ -89,9 +80,9 @@ function OrderFormContent() {
   useEffect(() => {
     if (qtyNum === 0) return;
 
-    if (qtyNum > 500) {
-      if (plan !== "custom") setPlan("custom");
-    } else if (qtyNum > 300) {
+    if (qtyNum > 1000) {
+      if (plan !== "elite") setPlan("elite");
+    } else if (qtyNum > 500) {
       if (plan !== "exclusive") setPlan("exclusive");
     } else if (qtyNum > 100) {
       if (plan !== "pro") setPlan("pro");
@@ -146,6 +137,15 @@ function OrderFormContent() {
 
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
+      
+      // Save pending order to localStorage
+      if (data.data?.id) {
+        localStorage.setItem("pendingOrderId", data.data.id);
+        if (data.data.payment_url) {
+          localStorage.setItem("pendingPaymentUrl", data.data.payment_url);
+        }
+      }
+
       router.push(`/order/success?id=${data.data.id}`);
     } catch {
       alert("Gagal mengirim data. Silakan coba lagi.");

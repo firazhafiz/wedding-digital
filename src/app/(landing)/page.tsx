@@ -7,6 +7,7 @@ import PricingSection from "@/components/landing/PricingSection";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import ContactSection from "@/components/landing/ContactSection";
 import LandingFooter from "@/components/landing/LandingFooter";
+import OrderIndicator from "@/components/landing/OrderIndicator";
 
 export default function LandingPage() {
   return (
@@ -22,6 +23,7 @@ export default function LandingPage() {
         <ContactSection />
       </main>
       <LandingFooter />
+      <OrderIndicator />
     </>
   );
 }

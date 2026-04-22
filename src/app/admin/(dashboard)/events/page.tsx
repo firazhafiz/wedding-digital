@@ -27,10 +27,10 @@ export default function AdminEventsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const packageOptions = [
-    { value: "basic", label: "Basic", desc: "Maksimal 100 Tamu" },
-    { value: "pro", label: "Pro", desc: "Maksimal 300 Tamu" },
-    { value: "exclusive", label: "Exclusive", desc: "Maksimal 500 Tamu" },
-    { value: "custom", label: "Custom", desc: "Tamu Tanpa Batas / Unlimited" },
+    { value: "basic", label: "Basic", desc: "Maksimal 100 Tamu — Rp 299.000" },
+    { value: "pro", label: "Pro", desc: "Maksimal 500 Tamu — Rp 499.000" },
+    { value: "exclusive", label: "Exclusive", desc: "Maksimal 1.000 Tamu — Rp 999.000" },
+    { value: "elite", label: "Elite", desc: "Maksimal 2.500 Tamu — Rp 1.499.000" },
   ];
   const router = useRouter();
   const supabase = createClient();
@@ -89,7 +89,7 @@ export default function AdminEventsPage() {
       return;
     }
 
-      const limits = { basic: 100, pro: 300, exclusive: 500, custom: 9999 };
+      const limits = { basic: 100, pro: 500, exclusive: 1000, elite: 2500 };
       const guestLimit = limits[newPackage as keyof typeof limits] || 100;
 
       const { data, error } = await supabase

@@ -32,6 +32,10 @@ export default function GuestManagementPage() {
   const [editLoading, setEditLoading] = useState(false);
   const [guestLimit, setGuestLimit] = useState<number | null>(null);
   const [packageType, setPackageType] = useState<string | null>(null);
+  const [blastMode, setBlastMode] = useState(false);
+  const [blastSelected, setBlastSelected] = useState<Set<string>>(new Set());
+  const [blastLoading, setBlastLoading] = useState(false);
+  const [blastResults, setBlastResults] = useState<{sent: number; failed: number; noPhone: number} | null>(null);
 
   const handleStartEdit = (guest: Guest) => {
     setEditingId(guest.id);
@@ -300,6 +304,45 @@ export default function GuestManagementPage() {
     }
   };
 
+  const toggleBlastSelection = (guestId: string) => {
+    setBlastSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(guestId)) next.delete(guestId);
+      else next.add(guestId);
+      return next;
+    });
+  };
+
+  const handleBlast = async () => {
+    if (blastSelected.size === 0) return;
+    setBlastLoading(true);
+    setBlastResults(null);
+    try {
+      const eventId = getActiveEventId();
+      const res = await fetch("/api/wa-blast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId,
+          guestIds: Array.from(blastSelected)
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Gagal memulai broadcast WA");
+      } else {
+        toast.success(`Broadcast diproses! ${data.summary.sent} terkirim.`);
+        setBlastResults(data.summary);
+        setBlastSelected(new Set());
+        setBlastMode(false);
+      }
+    } catch (err) {
+      toast.error("Terjadi kesalahan jaringan");
+    } finally {
+      setBlastLoading(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     toast("Yakin ingin menghapus tamu ini?", {
       action: {
@@ -468,6 +511,23 @@ export default function GuestManagementPage() {
             Export
           </button>
 
+          {(packageType === "exclusive" || packageType === "elite") && (
+            <button
+              onClick={() => {
+                setBlastMode(!blastMode);
+                setBlastSelected(new Set());
+                setBlastResults(null);
+              }}
+              className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-body border rounded-md transition-colors whitespace-nowrap ${
+                blastMode
+                  ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                  : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+              }`}
+            >
+              {blastMode ? "Batal Blast" : "WA Blast (Batch)"}
+            </button>
+          )}
+
           <Button
             variant="primary"
             size="sm"
@@ -542,6 +602,33 @@ export default function GuestManagementPage() {
         </div>
       </div>
 
+      {blastMode && (
+        <div className="bg-emerald-50 rounded-lg border border-emerald-100 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h4 className="font-semibold text-emerald-800 text-sm">Mode WA Blast</h4>
+            <p className="text-xs text-emerald-700/80">
+              {blastSelected.size} tamu dipilih. Pengiriman akan dijeda 30-60 detik per tamu (Max 50/sesi) untuk keamanan nomor dari banned.
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleBlast}
+            loading={blastLoading}
+            disabled={blastSelected.size === 0 || blastSelected.size > 50}
+            className="whitespace-nowrap"
+          >
+            Kirim {blastSelected.size} Pesan
+          </Button>
+        </div>
+      )}
+      {blastResults && (
+        <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
+          <h4 className="font-semibold text-blue-800 text-sm mb-1">Hasil Broadcast Terakhir:</h4>
+          <p className="text-xs text-blue-700">Terkirim: {blastResults.sent} | Gagal: {blastResults.failed} | Tidak Ada No HP: {blastResults.noPhone}</p>
+        </div>
+      )}
+
       {/* Add Form */}
       {showAddForm && (
         <form
@@ -600,6 +687,19 @@ export default function GuestManagementPage() {
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="px-2 sm:px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase">
+                  {blastMode && (
+                    <input 
+                      type="checkbox" 
+                      className="mr-2"
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setBlastSelected(new Set(guests.filter(g => g.phone_number).slice(0, 50).map(g => g.id)));
+                        } else {
+                          setBlastSelected(new Set());
+                        }
+                      }}
+                    />
+                  )}
                   Nama
                 </th>
                 <th className="px-4 py-3 font-body text-xs font-medium text-charcoal-light tracking-wider uppercase hidden sm:table-cell w-32 md:w-40">
@@ -647,8 +747,18 @@ export default function GuestManagementPage() {
                     className={`border-b border-gray-50 transition-colors ${isEditing ? 'bg-blue-50/30' : 'hover:bg-gray-50/50'}`}
                   >
                     <td className="px-2 sm:px-4 py-3 min-w-0">
-                      {isEditing ? (
-                        <div className="flex flex-col gap-2 min-w-0">
+                      <div className="flex items-center gap-2">
+                        {blastMode && (
+                          <input 
+                            type="checkbox"
+                            checked={blastSelected.has(guest.id)}
+                            onChange={() => toggleBlastSelection(guest.id)}
+                            disabled={!guest.phone_number}
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          {isEditing ? (
+                            <div className="flex flex-col gap-2 min-w-0">
                           <input
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
@@ -704,7 +814,9 @@ export default function GuestManagementPage() {
                           </div>
                         </div>
                       )}
-                    </td>
+                    </div>
+                  </div>
+                </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
                       {isEditing ? (
                         <input
