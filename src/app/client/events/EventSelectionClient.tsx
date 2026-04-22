@@ -14,7 +14,11 @@ interface EventItem {
   hero_photo_url: string | null;
 }
 
-export default function EventSelectionClient({ events }: { events: EventItem[] }) {
+export default function EventSelectionClient({
+  events,
+}: {
+  events: EventItem[];
+}) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
@@ -63,7 +67,7 @@ export default function EventSelectionClient({ events }: { events: EventItem[] }
                 {ev.bride_name[0]}&{ev.groom_name[0]}
               </div>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-charcoal to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-charcoal to-transparent" />
           </div>
 
           <div className="p-6 relative z-10 flex flex-col flex-1 -mt-8">
@@ -75,15 +79,26 @@ export default function EventSelectionClient({ events }: { events: EventItem[] }
             </p>
 
             <div className="flex items-center gap-2 mt-auto pt-4 border-t border-white/5 font-body text-xs text-white/50">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                 <line x1="16" y1="2" x2="16" y2="6" />
                 <line x1="8" y1="2" x2="8" y2="6" />
                 <line x1="3" y1="10" x2="21" y2="10" />
               </svg>
-              {ev.akad_date ? new Date(ev.akad_date).toLocaleDateString("id-ID", { dateStyle: "long" }) : "Tanggal Belum Diatur"}
+              {ev.akad_date
+                ? new Date(ev.akad_date).toLocaleDateString("id-ID", {
+                    dateStyle: "long",
+                  })
+                : "Tanggal Belum Diatur"}
             </div>
-            
+
             {/* Loading Indicator */}
             {loadingId === ev.id && (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-charcoal-dark/60 backdrop-blur-sm">

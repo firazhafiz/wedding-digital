@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   const xenditWebhookToken = process.env.XENDIT_WEBHOOK_TOKEN;
@@ -7,19 +7,22 @@ export async function POST(request: Request) {
 
   // 1. Verify Webhook Token
   if (xenditWebhookToken && callbackToken !== xenditWebhookToken) {
+    console.error("Webhook Token Mismatch. Expected:", xenditWebhookToken, "Got:", callbackToken);
     return NextResponse.json({ error: "Invalid callback token" }, { status: 401 });
   }
 
   try {
     const body = await request.json();
     const { status, external_id, id: paymentId } = body;
+    console.log("Xendit Webhook Received:", { status, external_id, paymentId });
 
     // We only care about PAID invoices
     if (status !== "PAID") {
+      console.log("Ignoring non-PAID status:", status);
       return NextResponse.json({ message: "Ignoring non-PAID status" });
     }
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     // 2. Find the order
     const { data: order, error: orderError } = await supabase
@@ -29,12 +32,14 @@ export async function POST(request: Request) {
       .single();
 
     if (orderError || !order) {
-      console.error("Order not found for webhook:", external_id);
+      console.error("Order not found for webhook external_id:", external_id, orderError);
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    console.log("Found order, updating status for ID:", order.id);
+
     // 3. Update Payment Status
-    await supabase
+    const { error: updateError } = await supabase
       .from("order_requests")
       .update({ 
         payment_status: "paid",
@@ -42,9 +47,14 @@ export async function POST(request: Request) {
       })
       .eq("id", order.id);
 
+    if (updateError) {
+      console.error("Failed to update payment status in DB:", updateError);
+      return NextResponse.json({ error: "Database update failed" }, { status: 500 });
+    }
+
+    console.log("Status updated to PAID successfully for Order:", order.id);
+
     // 4. Auto-Create Event Catalog
-    // Check if event already exists for this order (optional, to prevent duplicates)
-    // We'll use the groom & bride names to generate the slug
     const groomFirstName = order.groom_name.trim().split(/\s+/)[0] || "groom";
     const brideFirstName = order.bride_name.trim().split(/\s+/)[0] || "bride";
     let slug = `${groomFirstName}-${brideFirstName}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -65,6 +75,8 @@ export async function POST(request: Request) {
     const limits = { basic: 100, pro: 500, exclusive: 1000, elite: 2500 };
     const guestLimit = limits[order.package_type as keyof typeof limits] || 100;
 
+    console.log("Attempting to create event catalog with slug:", slug);
+
     // Create the event
     const { error: eventError } = await supabase
       .from('event_info')
@@ -79,12 +91,13 @@ export async function POST(request: Request) {
 
     if (eventError) {
       console.error("Auto-catalog creation failed:", eventError);
-      // Even if this fails, we return 200 to Xendit because payment was processed
+    } else {
+      console.log("Event catalog created successfully for slug:", slug);
     }
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Webhook error:", err);
+    console.error("Fatal Webhook error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

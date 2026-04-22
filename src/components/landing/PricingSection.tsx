@@ -129,7 +129,7 @@ export default function PricingSection() {
         </p>
 
         {/* CTA Custom */}
-        <div className="mt-10 text-center border border-white/10 rounded-2xl p-8 bg-white/[0.02] backdrop-blur-sm max-w-2xl mx-auto">
+        <div className="mt-10 text-center border border-white/10 rounded-2xl p-8 bg-white/2 backdrop-blur-sm max-w-2xl mx-auto">
           <h3 className="font-display text-xl text-white mb-2">Butuh Lebih?</h3>
           <p className="font-body text-white/50 text-sm mb-6 leading-relaxed">
             Ingin desain undangan khusus atau kapasitas lebih dari 2.500 tamu?
@@ -179,7 +179,7 @@ function PricingCard({
       className={`relative rounded-2xl p-8 flex flex-col transition-all duration-300 h-full ${
         isPopular
           ? "bg-linear-to-b from-gold/15 to-transparent border-2 border-gold ring-4 ring-gold/5 scale-105 z-20 shadow-2xl shadow-gold/10"
-          : "bg-white/[0.02] border border-white/10 hover:border-white/25"
+          : "bg-white/2 border border-white/10 hover:border-white/25"
       }`}
     >
       {isPopular && (
