@@ -182,7 +182,7 @@ export default function ClientSettingsPage() {
                 <div>
                   <label className="cms-label">Foto Mempelai Pria</label>
                   <FileUpload
-                    currentUrl={eventData.groom_photo_url}
+                    currentUrl={eventData.groom_photo_url || undefined}
                     onUploadComplete={(url) => setEventData({ ...eventData, groom_photo_url: url })}
                     label="Unggah Foto Pria"
                   />
@@ -254,7 +254,7 @@ export default function ClientSettingsPage() {
                 <div>
                   <label className="cms-label">Foto Mempelai Wanita</label>
                   <FileUpload
-                    currentUrl={eventData.bride_photo_url}
+                    currentUrl={eventData.bride_photo_url || undefined}
                     onUploadComplete={(url) => setEventData({ ...eventData, bride_photo_url: url })}
                     label="Unggah Foto Wanita"
                   />
@@ -474,7 +474,7 @@ export default function ClientSettingsPage() {
                   >
                     <div className="flex-1 space-y-2">
                       <FileUpload
-                        currentUrl={item.photo_url}
+                        currentUrl={item.photo_url || undefined}
                         onUploadComplete={(url) => {
                           const newGallery = [...gallery];
                           newGallery[idx].photo_url = url;
@@ -619,7 +619,7 @@ export default function ClientSettingsPage() {
                       <div className="md:col-span-2">
                         <label className="cms-label-xs">Foto Momen</label>
                         <FileUpload
-                          currentUrl={item.photo_url}
+                          currentUrl={item.photo_url || undefined}
                           onUploadComplete={(url) => {
                             const newStory = [...storyline];
                             newStory[idx].photo_url = url;
@@ -783,7 +783,7 @@ export default function ClientSettingsPage() {
             <div>
               <label className="cms-label">Hero Movie / Photo</label>
               <FileUpload
-                currentUrl={eventData.hero_photo_url}
+                currentUrl={eventData.hero_photo_url || undefined}
                 onUploadComplete={(url) => setEventData({ ...eventData, hero_photo_url: url })}
                 label="Unggah Hero Media"
                 accept="image/*,video/*"
@@ -838,7 +838,7 @@ export default function ClientSettingsPage() {
             <div>
               <label className="cms-label">Welcome Video</label>
               <FileUpload
-                currentUrl={eventData.welcome_video_url}
+                currentUrl={eventData.welcome_video_url || undefined}
                 onUploadComplete={(url) => setEventData({ ...eventData, welcome_video_url: url })}
                 label="Unggah Welcome Video"
                 accept="video/*"
@@ -849,7 +849,7 @@ export default function ClientSettingsPage() {
             <div>
               <label className="cms-label">Story & Gallery Background</label>
               <FileUpload
-                currentUrl={eventData.story_gallery_bg_url}
+                currentUrl={eventData.story_gallery_bg_url || undefined}
                 onUploadComplete={(url) => setEventData({ ...eventData, story_gallery_bg_url: url })}
                 label="Unggah Background Seksi"
                 maxSizeMB={10}
