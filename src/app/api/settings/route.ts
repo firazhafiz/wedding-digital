@@ -30,6 +30,13 @@ export async function POST(request: NextRequest) {
     // Sanitize internal fields from payload
     const { id, user_id, created_at, updated_at, ...updatePayload } = eventData as any;
 
+    // Prevent privilege escalation: clients cannot change package_type or guest_limit
+    if (session.isClient) {
+      delete updatePayload.package_type;
+      delete updatePayload.guest_limit;
+      delete updatePayload.user_id;
+    }
+
     const { error: eventError } = await supabase
       .from("event_info")
       .update(updatePayload)

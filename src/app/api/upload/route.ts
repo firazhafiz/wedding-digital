@@ -4,15 +4,20 @@ import { getAuthorizedSession } from "@/lib/auth-shared";
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Basic security: require ANY valid session (admin or client) to upload files
-    const session = await getAuthorizedSession(request);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized upload attempt" }, { status: 401 });
-    }
-
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const bucket = (formData.get("bucket") as string) || "uploads";
+
+    // Public is allowed ONLY for wedding gift transfer proofs ('proofs' or 'gifts')
+    const isPublicGiftProof = bucket === "proofs" || bucket === "gifts";
+
+    if (!isPublicGiftProof) {
+      // Require authorized session for CMS media uploads
+      const session = await getAuthorizedSession(request);
+      if (!session) {
+        return NextResponse.json({ error: "Unauthorized upload attempt" }, { status: 401 });
+      }
+    }
 
     if (!file) {
       return NextResponse.json(

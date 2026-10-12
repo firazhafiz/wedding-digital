@@ -1,9 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkinSchema, formatZodErrors } from "@/lib/validations";
+import { getAuthorizedSession } from "@/lib/auth-shared";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const session = await getAuthorizedSession(request);
+    if (!session) {
+      return NextResponse.json(
+        { error: "Autentikasi diperlukan untuk melakukan check-in" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     const result = checkinSchema.safeParse(body);

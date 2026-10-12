@@ -5,6 +5,20 @@ import { hashPassword } from "@/lib/client/auth";
 // CREATE client user
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createClient();
+
+    // Verify Admin authentication
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Hanya Admin yang berwenang mengelola akses klien" },
+        { status: 401 }
+      );
+    }
+
     const { event_id, email, password, label } = await req.json();
 
     if (!event_id || !email || !password) {
@@ -56,6 +70,20 @@ export async function POST(req: NextRequest) {
 // UPDATE client user
 export async function PUT(req: NextRequest) {
   try {
+    const supabase = await createClient();
+
+    // Verify Admin authentication
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Hanya Admin yang berwenang mengelola akses klien" },
+        { status: 401 }
+      );
+    }
+
     const { id, email, password, label } = await req.json();
 
     if (!id || !email) {
@@ -64,8 +92,6 @@ export async function PUT(req: NextRequest) {
         { status: 400 },
       );
     }
-
-    const supabase = await createClient();
 
     const updateData: Record<string, string> = {
       email: email.toLowerCase().trim(),

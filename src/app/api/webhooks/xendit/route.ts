@@ -5,9 +5,9 @@ export async function POST(request: Request) {
   const xenditWebhookToken = process.env.XENDIT_WEBHOOK_TOKEN;
   const callbackToken = request.headers.get("x-callback-token");
 
-  // 1. Verify Webhook Token
-  if (xenditWebhookToken && callbackToken !== xenditWebhookToken) {
-    console.error("Webhook Token Mismatch. Expected:", xenditWebhookToken, "Got:", callbackToken);
+  // 1. Verify Webhook Token (Strict)
+  if (!xenditWebhookToken || callbackToken !== xenditWebhookToken) {
+    console.error("Webhook Token Invalid or Missing. Expected:", xenditWebhookToken ? "Configured" : "MISSING", "Got:", callbackToken);
     return NextResponse.json({ error: "Invalid callback token" }, { status: 401 });
   }
 
@@ -82,6 +82,7 @@ export async function POST(request: Request) {
       .from('event_info')
       .insert({
         user_id: null, // Webhook runs without user context
+        client_email: order.client_email ? order.client_email.toLowerCase().trim() : null,
         event_slug: slug,
         groom_name: order.groom_name,
         bride_name: order.bride_name,

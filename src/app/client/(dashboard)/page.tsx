@@ -15,12 +15,17 @@ async function getClientDashboardData() {
   const payload = await verifyClientToken(token);
   if (!payload) redirect("/client/login");
 
+  const activeEventCookie = cookieStore.get("client_active_event")?.value;
+  const targetEventId = activeEventCookie || payload.eventId;
+
+  if (!targetEventId) redirect("/client/events");
+
   const supabase = await createClient();
 
   const { data: eventInfo } = await supabase
     .from("event_info")
     .select("id, event_slug, groom_name, bride_name, package_type, guest_limit")
-    .eq("id", payload.eventId)
+    .eq("id", targetEventId)
     .single();
 
   if (!eventInfo) redirect("/client/login");

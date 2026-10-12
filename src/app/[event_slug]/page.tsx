@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 interface PageProps {
@@ -17,21 +17,10 @@ export default async function EventRootPage({ params }: PageProps) {
     .single();
 
   if (!eventInfo) {
-    redirect("/admin/events"); // Or a global 404
+    notFound();
   }
 
-  // 2. Fetch first guest to provide a working link, or use 'tamu' slug as default
-  const { data: guest } = await supabase
-    .from("guests")
-    .select("slug")
-    .eq("event_id", eventInfo.id)
-    .limit(1)
-    .single();
-
-  if (guest) {
-    redirect(`/${event_slug}/to/${guest.slug}`);
-  }
-
-  // If no guests exist yet, redirect to admin or show error
-  redirect("/admin/events");
+  // Prevent guest enumeration / privacy leak:
+  // Root event URL should not leak any individual guest link
+  notFound();
 }

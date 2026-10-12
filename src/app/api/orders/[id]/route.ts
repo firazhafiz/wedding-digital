@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-// GET: Check order status
+// GET: Check order payment status only (minimal public disclosure)
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -19,7 +19,8 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ data: order });
+  // Only return id and payment_status to avoid exposing customer personal details publicly
+  return NextResponse.json({ data: { id: order.id, payment_status: order.payment_status } });
 }
 
 // DELETE: Cancel order
